@@ -1,0 +1,5 @@
+# KaleidoscopeL
+After downloading these files, type   make start   to compile.
+After compiling, type   ./Kaleidoscope   to run.
+File.k is the test file, which is now only tested for Dynamic Array.
+Now the code has some bugs that I have resolved, and I am going to find and solve them.
