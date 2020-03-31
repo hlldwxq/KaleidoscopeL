@@ -380,44 +380,47 @@ Value *ArrayAST::codegen()
 Value *DynamicArrayAST::codegen(){
 	Value* Size = size->codegen();
 	Size = Builder.CreateFPToSI(Size,Type::getInt64Ty(TheContext)); 
-	AllocaInst* ptr = Builder.CreateAlloca(Type::getDoublePtrTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext),1), arrayName);
+	/*AllocaInst* ptr = Builder.CreateAlloca(Type::getDoublePtrTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext),1), arrayName);
 	
-	DynamicArray[arrayName] = ptr;
-	Value* result = Builder.CreateMul(Size,ConstantInt::get(Type::getInt64Ty(TheContext),8));
+	DynamicArray[arrayName] = ptr;*/
+//	Value* mallocSize = Builder.CreateMul(Size,ConstantInt::get(Type::getInt64Ty(TheContext),ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext))));
+//	Value* mallocSize = Builder.CreateMul(Size,ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext)));
 
+	Constant* mallocSize = ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext));
+	mallocSize = ConstantExpr::getTruncOrBitCast(mallocSize, Type::getInt64Ty(TheContext));
+	
+	Instruction* Malloc = CallInst::CreateMalloc(Builder.GetInsertBlock(),Type::getInt64Ty(TheContext),Type::getDoubleTy(TheContext),mallocSize,Size,nullptr,"");
+
+/*
+CreateMalloc (BasicBlock *InsertAtEnd, Type *IntPtrTy, Type *AllocTy, Value *AllocSize, Value *ArraySize=nullptr, Function *MallocF=nullptr, const Twine &Name="")
+CreateMalloc (BasicBlock *InsertAtEnd, Type *IntPtrTy, Type *AllocTy, Value *AllocSize, Value *ArraySize=nullptr, ArrayRef< OperandBundleDef > Bundles=None, Function *MallocF=nullptr, const Twine &Name="")
+	
 	AllocaInst* ptr1 = Builder.CreateAlloca(Type::getDoublePtrTy(TheContext), result);
 
 	Value* finalValue = Builder.CreateBitCast(ptr1, Type::getDoublePtrTy(TheContext));
 	Builder.CreateStore(finalValue,ptr);
+	*/
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
 Value *VarExprAST::codegen()
 {
 	std::vector<AllocaInst *> OldBindings;
-	
-	fprintf(stderr,"qqqqq\n");
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
    
-    fprintf(stderr,"qqqqq1\n");
 	// Register all variables and emit their initializer.
 	for (unsigned i = 0, e = VarNames.size(); i != e; ++i){
 		const std::string &VarName = VarNames[i].first;
-		fprintf(stderr,"qqqqq2\n");
 		ExprAST *Init = VarNames[i].second.get();
-		fprintf(stderr,"qqqqq3\n");
 		// Emit the initializer before adding the variable to scope, this prevents
 		// the initializer from referencing the variable itself, and permits stuff
 		// like this:
 		//  var a = 1 in
 		//    var a = a in ...   # refers to outer 'a'.
 		Value *InitVal;
-		fprintf(stderr,"qqqqq4\n");
 		if (Init)
 		{
-			fprintf(stderr,"qqqqq5\n");
 			InitVal = Init->codegen();
-			fprintf(stderr,"qqqqq6\n");
 			if (!InitVal)
 				return nullptr;
 		}
@@ -425,18 +428,13 @@ Value *VarExprAST::codegen()
 		{ // If not specified, use 0.0.
 			InitVal = ConstantFP::get(TheContext, APFloat(0.0));
 		}
-		fprintf(stderr,"qqqqq7\n");
 		AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName, 1);
-		fprintf(stderr,"qqqqq8\n");
 		auto* B = Builder.CreateStore(InitVal, Alloca);
-		fprintf(stderr,"qqqqq9\n");
 		// Remember the old variable binding so that we can restore the binding when
 		// we unrecurse.
 		OldBindings.push_back(NamedValues[VarName]);
-		fprintf(stderr,"qqqqq10\n");
 		// Remember this binding.
 		NamedValues[VarName] = Alloca;
-		fprintf(stderr,"qqqqq11\n");
         return B;
 	}
 
@@ -478,15 +476,10 @@ Function *PrototypeAST::codegen()
 }
 
 Value *BodyAST::codegen(){
-	fprintf(stderr,"llll\n");
-	fprintf(stderr,"codegen type %d \n",getType());
-	fprintf(stderr,"llll1\n");
 	for(int i = 0;i<bodys.size();i++){
 		(bodys[i])->codegen();
 	}
-	fprintf(stderr,"llll2\n");
 	if(!returnE){
-		fprintf(stderr,"llll3\n");
         return Constant::getNullValue(Type::getDoubleTy(TheContext));
     }else{
 		Value* returnV = returnE->codegen();

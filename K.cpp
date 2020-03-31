@@ -43,7 +43,7 @@ int main() {
 	InitializeNativeTargetAsmPrinter();
 	InitializeNativeTargetAsmParser();
 
-	fprintf(stderr,"third\n");
+	//fprintf(stderr,"third\n");
 	// Install standard binary operators.
 	// 1 is lowest precedence.
 	BinopPrecedence['='] = 2;
@@ -57,14 +57,10 @@ int main() {
 	getNextToken();
 
 	TheJIT = std::make_unique<KaleidoscopeJIT>();
-	fprintf(stderr,"aaaa\n");
 	InitializeModuleAndPassManager(fileName);
 	// Run the main "interpreter loop" now.
-	fprintf(stderr,"dddd\n");
 	HandleTopLoop();
-	fprintf(stderr,"gggg\n");
 	TheModule->dump();
-	fprintf(stderr,"lalalala\n");
 	return 0;
 }
 
@@ -90,15 +86,11 @@ static void InitializeModuleAndPassManager(std::string fileName) {
 }
 
 static void HandleDefinition() {
-	fprintf(stderr,"wwwww\n");
 	if (auto FnAST = ParseDefinition())
 	{	
-		fprintf(stderr,"bbbb\n");
 		if (auto FnIR = FnAST->codegen())
 		{
-			fprintf(stderr,"ppppp\n");
-			//FnIR->print(errs());
-			//TheJIT->addModule(std::move(TheModule));
+			//loading...
 		}
 	}
 	else
@@ -127,13 +119,10 @@ static void HandleExtern() {
 static void HandleTopLevelExpression() {
 
 	// Evaluate a top-level expression into an anonymous function.
-	fprintf(stderr,"ppppp1\n");
 	if (auto FnAST = ParseTopLevelExpr())
 	{
-		fprintf(stderr,"ppppp2\n");
 		if (auto* FnIR = FnAST->codegen())
 		{
-			fprintf(stderr,"ppppp3\n");
 			// JIT the module containing the anonymous expression, keeping a handle so
 			// we can free it later.
 			//fprintf(stderr, "top level expression: ");
@@ -175,9 +164,7 @@ static void HandleTopLoop() {
 				getNextToken();
 				break;
 			case tok_def:
-				fprintf(stderr,"ooooo\n");
 				HandleDefinition();
-				fprintf(stderr,"vvvvv\n");
 				break;
 			case tok_extern:
 				HandleExtern();

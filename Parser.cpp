@@ -326,21 +326,14 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr()
 }
 
 static std::unique_ptr<ExprAST> ParseBody(){
-	fprintf(stderr,"ooooo3\n");
 	auto bodyE = ParseExpression();
-	fprintf(stderr,"ooooo4\n");
-	//bodyE->codegen();
-	//fprintf(stderr,"ooooo44\n");
-	if(bodyE->getType()== ASTType::body){
-		fprintf(stderr,"ooooo5\n");
+
+	if(bodyE->getType()== ASTType::body){;
 		return move(bodyE);
 	}else{
-		fprintf(stderr,"ooooo6\n");
 		std::vector<std::unique_ptr<ExprAST>> b;
 		b.push_back(move(bodyE));
-		fprintf(stderr,"ooooo7\n");
 		std::unique_ptr<ExprAST> returnE;
-		fprintf(stderr,"ooooo8\n");
 		return std::make_unique<BodyAST>(move(returnE),move(b));
 	}
 }
@@ -435,14 +428,12 @@ static std::unique_ptr<ExprAST> ParseUnary()
 	// If the current token is not an operator, it must be a primary expr.
 	if (!isascii(CurTok) || CurTok == '(' || CurTok == ',' || CurTok=='{') // ( �������ŵı���ʽ���� , ��ɶ��
 	{	
-		fprintf(stderr,"ppppp5\n");
 		return ParsePrimary();
 	}
 	// If this is a unary operator, read it.
 	int Opc = CurTok;
 	getNextToken();
 	if (auto Operand = ParseUnary()){
-		fprintf(stderr,"ppppp5\n");
 		return std::make_unique<UnaryExprAST>(Opc, std::move(Operand));
 	}
 	return nullptr;
@@ -606,21 +597,14 @@ std::unique_ptr<FunctionAST> ParseDefinition()
 /// toplevelexpr ::= expression
 std::unique_ptr<FunctionAST> ParseTopLevelExpr()
 {
-	fprintf(stderr,"ppppp3\n");
 	if (auto E = ParseExpression())
 	{
-		fprintf(stderr,"ppppp4\n");
 		// Make an anonymous proto.
 		auto Proto = std::make_unique<PrototypeAST>("__anon_expr", std::vector<std::string>(),doubleR);
-		fprintf(stderr,"ppppp5\n");
 		std::vector<std::unique_ptr<ExprAST>> bodyE;
-		fprintf(stderr,"ppppp6\n");
 		bodyE.push_back(std::move(E));
-		fprintf(stderr,"ppppp7\n");
 		std::unique_ptr<ExprAST> returnE;
-		fprintf(stderr,"ppppp8\n");
 		std::unique_ptr<BodyAST> bodys = std::make_unique<BodyAST>(move(returnE),move(bodyE));
-		fprintf(stderr,"ppppp9\n");
 		return std::make_unique<FunctionAST>(std::move(Proto), std::move(bodys));
 	}
 	return nullptr;
