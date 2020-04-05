@@ -128,24 +128,22 @@ Value *BinaryExprAST::codegen()
 			if (!arrayPtr){
 
 				arrayPtr = DynamicArray[LHSE->getArrayName()];
-				arrayPtr->dump();
-				Value *realArrayPtr = Builder.CreateLoad(arrayPtr);
 				if(!arrayPtr)
 					return LogErrorV("undefined array");
 
-				Value *index = LHSE->getIndex()->codegen();
-				index->dump();
+				arrayPtr = Builder.CreateLoad(arrayPtr);
 
-				TheModule->dump();
-			//	cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType();
+				/*Value *index = LHSE->getIndex()->codegen();
+				
 				Variable = Builder.CreateGEP(cast<PointerType>(realArrayPtr->getType()->getScalarType())->getElementType(),
 											realArrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
+				*/
 			}
-			else{
+			//else{
 				Value *index = LHSE->getIndex()->codegen();
 				Variable = Builder.CreateGEP(cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType(),
 												arrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
-			}
+			//}
 		}
 		
         if (!Variable){
@@ -355,11 +353,11 @@ Value *CallArrayAST::codegen()
 
 		if(!arrayPtr)
 			return LogErrorV("undefined array");
-		Value* ptr = Builder.CreateLoad(arrayPtr);
-		Value *index = arrayIndex->codegen();
+		arrayPtr = Builder.CreateLoad(arrayPtr);
+		/*Value *index = arrayIndex->codegen();
 		Value *eleptr = Builder.CreateGEP(cast<PointerType>(ptr->getType()->getScalarType())->getElementType(),
 									  ptr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
-		return Builder.CreateLoad(eleptr);								
+		return Builder.CreateLoad(eleptr);*/								
 	}
 	Value *index = arrayIndex->codegen();
     //int (*FP)() = (int (*)())(intptr_t)cantFail(index.getAddress());
