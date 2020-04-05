@@ -16,7 +16,7 @@ static void HandleTopLevelExpression();
 /// top ::= definition | external | expression | ';'
 static void HandleTopLoop();
 void printwq(const char *Str){
-	fprintf(stderr, "info: %s", Str);
+	fprintf(stderr, "%s", Str);
 }
 void printint(const int i){
 	fprintf(stderr, "info: %d", i);
@@ -56,7 +56,7 @@ int main() {
 	// fprintf(stderr, "ready> ");
 	getNextToken();
 
-	TheJIT = std::make_unique<KaleidoscopeJIT>();
+	//TheJIT = std::make_unique<KaleidoscopeJIT>();
 	InitializeModuleAndPassManager(fileName);
 	// Run the main "interpreter loop" now.
 	HandleTopLoop();
@@ -68,7 +68,7 @@ static void InitializeModuleAndPassManager(std::string fileName) {
 
 	// Open a new module.
 	TheModule = std::make_unique<Module>(fileName, TheContext);
-	TheModule->setDataLayout(TheJIT->getTargetMachine().createDataLayout());
+	//TheModule->setDataLayout(TheJIT->getTargetMachine().createDataLayout());
 
 	// Create a new pass manager attached to it.
 	TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
@@ -86,7 +86,7 @@ static void InitializeModuleAndPassManager(std::string fileName) {
 }
 
 static void HandleDefinition() {
-	if (auto FnAST = ParseDefinition())
+	if (auto FnAST = ParseDefinition(0))
 	{	
 		if (auto FnIR = FnAST->codegen())
 		{
@@ -102,7 +102,7 @@ static void HandleDefinition() {
 
 static void HandleExtern() {
 
-	if (auto ProtoAST = ParseExtern())
+	if (auto ProtoAST = ParseExtern(0))
 	{
 		if (auto *FnIR = ProtoAST->codegen())
 		{
@@ -119,7 +119,7 @@ static void HandleExtern() {
 static void HandleTopLevelExpression() {
 
 	// Evaluate a top-level expression into an anonymous function.
-	if (auto FnAST = ParseTopLevelExpr())
+	if (auto FnAST = ParseTopLevelExpr(0))
 	{
 		if (auto* FnIR = FnAST->codegen())
 		{

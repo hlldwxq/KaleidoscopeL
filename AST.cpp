@@ -109,6 +109,7 @@ Value *UnaryExprAST::codegen()
 
 Value *BinaryExprAST::codegen()
 {
+
 	if (Op == '=')
 	{
 		if (LHS->getType() != variable && LHS->getType() != callArray){
@@ -123,14 +124,28 @@ Value *BinaryExprAST::codegen()
 		}else{
 
 			CallArrayAST *LHSE = static_cast<CallArrayAST *>(LHS.get());
-			AllocaInst *arrayPtr = NamedArray[LHSE->getArrayName()];
+			Value *arrayPtr = NamedArray[LHSE->getArrayName()];
 			if (!arrayPtr){
-				return LogErrorV("undefined array");
-			}
 
-			Value *index = LHSE->getIndex()->codegen();
-			Variable = Builder.CreateGEP(cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType(),
-											arrayPtr, {index});
+				arrayPtr = DynamicArray[LHSE->getArrayName()];
+				arrayPtr->dump();
+				Value *realArrayPtr = Builder.CreateLoad(arrayPtr);
+				if(!arrayPtr)
+					return LogErrorV("undefined array");
+
+				Value *index = LHSE->getIndex()->codegen();
+				index->dump();
+
+				TheModule->dump();
+			//	cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType();
+				Variable = Builder.CreateGEP(cast<PointerType>(realArrayPtr->getType()->getScalarType())->getElementType(),
+											realArrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
+			}
+			else{
+				Value *index = LHSE->getIndex()->codegen();
+				Variable = Builder.CreateGEP(cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType(),
+												arrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
+			}
 		}
 		
         if (!Variable){
@@ -333,10 +348,11 @@ Value *ForExprAST::codegen()
 
 Value *CallArrayAST::codegen()
 {
-	AllocaInst *arrayPtr = NamedArray[arrayName];
+	Value *arrayPtr = NamedArray[arrayName];
 	if (!arrayPtr)
 	{
 		arrayPtr = DynamicArray[arrayName];
+
 		if(!arrayPtr)
 			return LogErrorV("undefined array");
 		Value* ptr = Builder.CreateLoad(arrayPtr);
@@ -355,7 +371,6 @@ Value *CallArrayAST::codegen()
 
 Value *ArrayAST::codegen()
 {
-
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), size), arrayName);
 	/*CreateEntryBlockAlloca(TheFunction, arrayName, size);*/
@@ -378,28 +393,23 @@ Value *ArrayAST::codegen()
 }
 
 Value *DynamicArrayAST::codegen(){
+	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoublePtrTy(TheContext),nullptr, arrayName);
+    DynamicArray[arrayName] = Alloca;
+
 	Value* Size = size->codegen();
 	Size = Builder.CreateFPToSI(Size,Type::getInt64Ty(TheContext)); 
-	/*AllocaInst* ptr = Builder.CreateAlloca(Type::getDoublePtrTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext),1), arrayName);
-	
-	DynamicArray[arrayName] = ptr;*/
-//	Value* mallocSize = Builder.CreateMul(Size,ConstantInt::get(Type::getInt64Ty(TheContext),ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext))));
-//	Value* mallocSize = Builder.CreateMul(Size,ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext)));
 
-	Constant* mallocSize = ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext));
-	mallocSize = ConstantExpr::getTruncOrBitCast(mallocSize, Type::getInt64Ty(TheContext));
+	Value * mallocSize = ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext));
+    mallocSize = ConstantExpr::getTruncOrBitCast(cast<Constant>(mallocSize),
+            										Type::getInt64Ty(TheContext));
+  
+    Instruction * var_malloc= CallInst::CreateMalloc(Builder.GetInsertBlock(),
+            Type::getInt64Ty(TheContext), Type::getDoubleTy(TheContext), mallocSize,Size,nullptr,"");
+    Builder.Insert(var_malloc);
+    Value *var = var_malloc;
 	
-	Instruction* Malloc = CallInst::CreateMalloc(Builder.GetInsertBlock(),Type::getInt64Ty(TheContext),Type::getDoubleTy(TheContext),mallocSize,Size,nullptr,"");
+	Builder.CreateStore(var,Alloca);
 
-/*
-CreateMalloc (BasicBlock *InsertAtEnd, Type *IntPtrTy, Type *AllocTy, Value *AllocSize, Value *ArraySize=nullptr, Function *MallocF=nullptr, const Twine &Name="")
-CreateMalloc (BasicBlock *InsertAtEnd, Type *IntPtrTy, Type *AllocTy, Value *AllocSize, Value *ArraySize=nullptr, ArrayRef< OperandBundleDef > Bundles=None, Function *MallocF=nullptr, const Twine &Name="")
-	
-	AllocaInst* ptr1 = Builder.CreateAlloca(Type::getDoublePtrTy(TheContext), result);
-
-	Value* finalValue = Builder.CreateBitCast(ptr1, Type::getDoublePtrTy(TheContext));
-	Builder.CreateStore(finalValue,ptr);
-	*/
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 

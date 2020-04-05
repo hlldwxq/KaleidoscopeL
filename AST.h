@@ -281,7 +281,7 @@ static LLVMContext TheContext;
 static IRBuilder<> Builder(TheContext);
 static std::map<std::string, AllocaInst *> NamedValues;
 static std::map<std::string, AllocaInst *> NamedArray;
-static std::map<std::string, AllocaInst *> DynamicArray;
+static std::map<std::string, Value *> DynamicArray;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 
 std::unique_ptr<ExprAST> LogError(const char *Str);
