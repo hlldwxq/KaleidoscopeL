@@ -11,5 +11,3 @@ start: $(C_OBJECTS)
 
 clean:
 	$(RM) $(C_OBJECTS)
-
-

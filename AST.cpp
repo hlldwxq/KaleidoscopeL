@@ -79,23 +79,26 @@ static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction, StringRef VarNa
 
 Value *NumberExprAST::codegen()
 {
+//	printwq("codegen number\n");
 	return ConstantFP::get(TheContext, APFloat(Val));
 }
 
-
-
 Value *VariableExprAST::codegen()
 {
+//	printwq("codegen variable\n");
 	// Look this variable up in the function.
 	AllocaInst *V = NamedValues[Name];
 	if (!V){
 		return LogErrorV("Unknown variable name");
 	}
+//	printwq("codegen variable end\n");
 	return Builder.CreateLoad(V, Name.c_str());
 }
 
 Value *UnaryExprAST::codegen()
 {
+//	printwq("codegen unary\n");
+
 	Value *OperandV = Operand->codegen();
 	if (!OperandV)
 		return nullptr;
@@ -104,12 +107,13 @@ Value *UnaryExprAST::codegen()
 	if (!F)
 		return LogErrorV("Unknown unary operator");
 
+//	printwq("codegen unary end\n");
 	return Builder.CreateCall(F, OperandV, "unop");
 }
 
 Value *BinaryExprAST::codegen()
 {
-
+//	printwq("codegen binary\n");
 	if (Op == '=')
 	{
 		if (LHS->getType() != variable && LHS->getType() != callArray){
@@ -183,11 +187,14 @@ Value *BinaryExprAST::codegen()
 	assert(F && "binary operator not found!");
 
 	Value *Ops[] = {L, R};
+
+//	printwq("codegen binary end\n");
 	return Builder.CreateCall(F, Ops, "binop");
 }
 
 Value *CallExprAST::codegen()
 {
+//	printwq("codegen call\n");
 	// Look up the name in the global module table.
 	Function *CalleeF = getFunction(Callee);
 	if (!CalleeF)
@@ -205,11 +212,13 @@ Value *CallExprAST::codegen()
 			return nullptr;
 	}
 
+//	printwq("codegen call end\n");
 	return Builder.CreateCall(CalleeF, ArgsV, "calltmp");
 }
 
 Value *IfExprAST::codegen()
 {
+//	printwq("codegen if\n");
 	Value *CondV = Cond->codegen();
 	if (!CondV)
 		return nullptr;
@@ -258,11 +267,15 @@ Value *IfExprAST::codegen()
 
 	PN->addIncoming(ThenV, ThenBB);
 	PN->addIncoming(ElseV, ElseBB);
+
+//	printwq("codegen if end\n");
 	return PN;
 }
 
 Value *ForExprAST::codegen()
 {
+//	printwq("codegen for\n");
+
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 	// Create an alloca for the variable in the entry block.
 	AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName, 1);
@@ -341,11 +354,14 @@ Value *ForExprAST::codegen()
 		NamedValues.erase(VarName);
 
 	// for expr always returns 0.0.
+//	printwq("codegen for end\n");
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
 Value *CallArrayAST::codegen()
 {
+//	printwq("codegen call array\n");
+
 	Value *arrayPtr = NamedArray[arrayName];
 	if (!arrayPtr)
 	{
@@ -363,12 +379,15 @@ Value *CallArrayAST::codegen()
     //int (*FP)() = (int (*)())(intptr_t)cantFail(index.getAddress());
 	Value *eleptr = Builder.CreateGEP(cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType(),
 									  arrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
-    return Builder.CreateLoad(eleptr);
+//    printwq("codegen call array end\n");
+	return Builder.CreateLoad(eleptr);
     
 }
 
 Value *ArrayAST::codegen()
 {
+//	printwq("codegen array\n");
+
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), size), arrayName);
 	/*CreateEntryBlockAlloca(TheFunction, arrayName, size);*/
@@ -387,10 +406,15 @@ Value *ArrayAST::codegen()
 		//Builder.CreateStore(InitVal, Alloca);
 	}
     //return 0.0
+//	printwq("codegen array end\n");
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
-Value *DynamicArrayAST::codegen(){
+Value *DynamicArrayAST::codegen()
+{
+
+//	printwq("codegen dynamic array\n");
+
 	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoublePtrTy(TheContext),nullptr, arrayName);
     DynamicArray[arrayName] = Alloca;
 
@@ -408,11 +432,14 @@ Value *DynamicArrayAST::codegen(){
 	
 	Builder.CreateStore(var,Alloca);
 
+//	printwq("codegen dynamic array end\n");
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
 Value *VarExprAST::codegen()
 {
+//	printwq("codegen var\n");
+
 	std::vector<AllocaInst *> OldBindings;
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
    
@@ -443,6 +470,7 @@ Value *VarExprAST::codegen()
 		OldBindings.push_back(NamedValues[VarName]);
 		// Remember this binding.
 		NamedValues[VarName] = Alloca;
+//		printwq("codegen var end1\n");
         return B;
 	}
 
@@ -458,12 +486,14 @@ Value *VarExprAST::codegen()
 
 	// Return the body computation.
     */
+//   printwq("codegen var end2\n");
 	return nullptr;
 }
 
 Function *PrototypeAST::codegen()
 {
-	
+//	printwq("codegen prototype\n");
+
 	std::vector<Type *> Doubles(Args.size(), Type::getDoubleTy(TheContext));
 
 	FunctionType *FT;
@@ -472,7 +502,7 @@ Function *PrototypeAST::codegen()
     }else if(getReturnType()==voidR){
         FT = FunctionType::get(Type::getVoidTy(TheContext), Doubles, false);
     }
-	printf("==========================name: %s",(char*)Name.data());
+//	printf("==========================name: %s",(char*)Name.data());
 	Function *F = Function::Create(FT, Function::ExternalLinkage, Name, TheModule.get());
 
 	// Set names for all arguments.
@@ -480,23 +510,32 @@ Function *PrototypeAST::codegen()
 	for (auto &Arg : F->args())
 		Arg.setName(Args[Idx++]);
 
+//	printwq("codegen prototype end\n");
+
 	return F;
 }
 
-Value *BodyAST::codegen(){
+Value *BodyAST::codegen()
+{
+//	printwq("codegen body\n");
+
 	for(int i = 0;i<bodys.size();i++){
 		(bodys[i])->codegen();
 	}
 	if(!returnE){
+//		printwq("codegen body end1\n");
         return Constant::getNullValue(Type::getDoubleTy(TheContext));
     }else{
 		Value* returnV = returnE->codegen();
+//		printwq("codegen body end2\n");
         return std::move(returnV);
     }
 }
 
 Function *FunctionAST::codegen()
 {
+//	printwq("codegen function\n");
+
 	// Transfer ownership of the prototype to the FunctionProtos map, but keep a
 	// reference to it for use below.
 	auto &P = *Proto;
@@ -548,6 +587,8 @@ Function *FunctionAST::codegen()
 
 	if (P.isBinaryOp())
 		BinopPrecedence.erase(P.getOperatorName());
+
+//	printwq("codegen function end\n");
 	return nullptr;
 }
 

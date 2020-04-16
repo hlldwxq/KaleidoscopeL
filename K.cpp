@@ -60,7 +60,8 @@ int main() {
 	InitializeModuleAndPassManager(fileName);
 	// Run the main "interpreter loop" now.
 	HandleTopLoop();
-	TheModule->dump();
+	//TheModule->dump();
+	TheModule->print(errs(), nullptr);
 	return 0;
 }
 

@@ -31,10 +31,10 @@ std::string int2Str(int i) {
 /// numberexpr ::= number
 static std::unique_ptr<ExprAST> ParseNumberExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse number\n");
+	printwq("parse number\n");*/
 	auto Result = std::make_unique<NumberExprAST>(NumVal); 
 	getNextToken();	// eat the number	
 					   
@@ -44,10 +44,10 @@ static std::unique_ptr<ExprAST> ParseNumberExpr(int level)
 /// parenexpr ::= '(' expression ')'
 static std::unique_ptr<ExprAST> ParseParenExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse paren\n");
+	printwq("parse paren\n");*/
 	getNextToken(); // eat (.
 	auto V = ParseExpression(level+1);
 	if (!V)
@@ -65,10 +65,10 @@ static std::unique_ptr<ExprAST> ParseParenExpr(int level)
 ///                    (',' identifier ('=' expression)?)* 'in' expression
 static std::unique_ptr<ExprAST> ParseVarExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse var\n");
+	printwq("parse var\n");*/
 
 	getNextToken(); //eat var
 	std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
@@ -108,10 +108,10 @@ static std::unique_ptr<ExprAST> ParseVarExpr(int level)
 ///          ::= array *a = new [n]
 static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse array\n");
+	printwq("parse array\n");*/
 
 	getNextToken(); // eat array
 
@@ -147,10 +147,10 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 		getNextToken();
 
 		auto result = std::make_unique<DynamicArrayAST>(name, std::move(size));
-		for(int i=0;i<level;i++){
+/*		for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse array 1\n");
+		printwq("end parse array 1\n");*/
 		return std::move(result);
 
 	}else if(CurTok == tok_identifier){
@@ -189,10 +189,10 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 			}
 			getNextToken(); //eat }
 			auto result = std::make_unique<ArrayAST>(name, std::move(content));
-			for(int i=0;i<level;i++){
+		/*	for(int i=0;i<level;i++){
 				printwq(" ");
 			}
-			printwq("end parse array 1\n");
+			printwq("end parse array 1\n");*/
 			return std::move(result);
 		}
 		else if (CurTok == '[')
@@ -217,10 +217,10 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 				getNextToken();
 			}
 			auto result = std::make_unique<ArrayAST>(name, num);
-			for(int i=0;i<level;i++){
+		/*	for(int i=0;i<level;i++){
 				printwq(" ");
 			}
-			printwq("end parse array 2\n");
+			printwq("end parse array 2\n");*/
 			return std::move(result);
 		}
 		else
@@ -242,56 +242,56 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 ///   ::= { primary+ }
 static std::unique_ptr<ExprAST> ParsePrimary(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse primary\n");
+	printwq("parse primary\n");*/
 
 	switch (CurTok)
 	{
 	default:
 		return LogError("unknown token when expecting an expression");
 	case tok_identifier:
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 1\n");
+		printwq("end parse primary 1\n");*/
 		return ParseIdentifierExpr(level+1);
 	case tok_number:
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 2\n");
+		printwq("end parse primary 2\n");*/
 		return ParseNumberExpr(level+1);
 	case '(':
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 3\n");
+		printwq("end parse primary 3\n");*/
 		return ParseParenExpr(level+1);
 	case tok_if:
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 4\n");
+		printwq("end parse primary 4\n");*/
 		return ParseIfExpr(level+1);
 	case tok_for:
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 5\n");
+		printwq("end parse primary 5\n");*/
 		return ParseForExpr(level+1);
 	case tok_var:
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 6\n");
+		printwq("end parse primary 6\n");*/
 		return ParseVarExpr(level+1);
 	case tok_array:
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 7\n");
+		printwq("end parse primary 7\n");*/
 		return ParseArrayExpr(level+1);
 	case '{':
 		getNextToken(); // eat {
@@ -313,10 +313,10 @@ static std::unique_ptr<ExprAST> ParsePrimary(int level)
 				if(CurTok != '}')
 					return LogError("expected }");
 				getNextToken(); // eat }
-				for(int i=0;i<level;i++){
+			/*	for(int i=0;i<level;i++){
 					printwq(" ");
 				}
-				printwq("end parse primary return\n");
+				printwq("end parse primary return\n");*/
 				return std::make_unique<BodyAST>(std::move(returnE),std::move(bodys));
 			}
 
@@ -326,10 +326,10 @@ static std::unique_ptr<ExprAST> ParsePrimary(int level)
 		}
 		getNextToken(); //eat }
 		std::unique_ptr<ExprAST> returnE;
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary\n");
+		printwq("end parse primary\n");*/
 		return move(std::make_unique<BodyAST>(move(returnE),std::move(bodys)));
 	}
 }
@@ -340,20 +340,20 @@ static std::unique_ptr<ExprAST> ParsePrimary(int level)
 ///   ::= identifier '[' e ']'
 static std::unique_ptr<ExprAST> ParseIdentifierExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse identifier\n");
+	printwq("parse identifier\n");*/
 	std::string IdName = IdentifierStr;
 
 	getNextToken(); // eat identifier.
 
 	if (CurTok != '(' && CurTok != '[' && CurTok != '.') // Simple variable ref.
 	{	
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end identifier end 1\n");
+		printwq("end identifier end 1\n");*/
 		return std::make_unique<VariableExprAST>(IdName);
 	}
 	if (CurTok == '(')
@@ -380,10 +380,10 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr(int level)
 		}
 		// Eat the ')'.
 		getNextToken();
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse identifier call\n");
+		printwq("end parse identifier call\n");*/
 		return std::make_unique<CallExprAST>(IdName, std::move(Args));
 	}
 	else if (CurTok == '[')
@@ -402,10 +402,10 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr(int level)
 		// Eat the ']'.
 		getNextToken();
 		//if (CurTok != '=')
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse identifier array\n");
+		printwq("end parse identifier array\n");*/
 		return std::make_unique<CallArrayAST>(IdName, std::move(index));
 		//else
 		//	return ParseInitArrayExpr(std::make_unique<CallArrayAST>(IdName, std::move(index)));
@@ -414,26 +414,26 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr(int level)
 }
 
 static std::unique_ptr<ExprAST> ParseBody(int level){
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse body");
+	printwq("parse body");*/
 	auto bodyE = ParseExpression(level+1);
 
 	if(bodyE->getType()== ASTType::body){;
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse body no return\n");
+		printwq("end parse body no return\n");*/
 		return move(bodyE);
 	}else{
 		std::vector<std::unique_ptr<ExprAST>> b;
 		b.push_back(move(bodyE));
 		std::unique_ptr<ExprAST> returnE;
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse body ret\n");
+		printwq("end parse body ret\n");*/
 		return std::make_unique<BodyAST>(move(returnE),move(b));
 	}
 }
@@ -441,10 +441,10 @@ static std::unique_ptr<ExprAST> ParseBody(int level){
 /// ifexpr ::= 'if' expression 'then' expression 'else' expression
 static std::unique_ptr<ExprAST> ParseIfExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse if\n");
+	printwq("parse if\n");*/
 	getNextToken(); // eat the if.
 
 	// condition.
@@ -478,10 +478,10 @@ static std::unique_ptr<ExprAST> ParseIfExpr(int level)
 ///    putchard(42);
 static std::unique_ptr<ExprAST> ParseForExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse for\n");
+	printwq("parse for\n");*/
 	getNextToken(); // eat the for.
 
 	if (CurTok != tok_identifier)
@@ -533,27 +533,27 @@ static std::unique_ptr<ExprAST> ParseForExpr(int level)
 ///   ::= '!' unary
 static std::unique_ptr<ExprAST> ParseUnary(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse unary\n");
+	printwq("parse unary\n");*/
 	// If the current token is not an operator, it must be a primary expr.
 	if (!isascii(CurTok) || CurTok == '(' || CurTok == ',' || CurTok=='{') // ( �������ŵı���ʽ���� , ��ɶ��
 	{	
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse primary 1\n");
+		printwq("end parse primary 1\n");*/
 		return ParsePrimary(level+1);
 	}
 	// If this is a unary operator, read it.
 	int Opc = CurTok;
 	getNextToken();
 	if (auto Operand = ParseUnary(level+1)){
-		for(int i=0;i<level;i++){
+	/*	for(int i=0;i<level;i++){
 			printwq(" ");
 		}
-		printwq("end parse unary 2\n");
+		printwq("end parse unary 2\n");*/
 		return std::make_unique<UnaryExprAST>(Opc, std::move(Operand));
 	}
 	return nullptr;
@@ -575,10 +575,10 @@ static std::unique_ptr<ExprAST> ParseUnary(int level)
 
 static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS, int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse binopRHS\n");
+	printwq("parse binopRHS\n");*/
 	// If this is a binop, find its precedence.
 	while (true)
 	{
@@ -617,10 +617,10 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<Expr
 ///   ::= unary binoprhs
 static std::unique_ptr<ExprAST> ParseExpression(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse expression\n");
+	printwq("parse expression\n");*/
 
 	auto LHS = ParseUnary(level+1);
 	if (!LHS)
@@ -634,10 +634,10 @@ static std::unique_ptr<ExprAST> ParseExpression(int level)
 ///   ::= binary LETTER number? (id, id)
 ///   ::= unary LETTER (id)
 std::unique_ptr<PrototypeAST> ParsePrototype(int level){ 
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse proto type\n");
+	printwq("parse proto type\n");*/
 	std::string FnName;
     int returnType;
 	unsigned Kind = 0; // 0 = identifier, 1 = unary, 2 = binary.
@@ -713,10 +713,10 @@ std::unique_ptr<PrototypeAST> ParsePrototype(int level){
 /// definition ::= 'def' prototype expression
 std::unique_ptr<FunctionAST> ParseDefinition(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse definition\n");
+	printwq("parse definition\n");*/
 
 	getNextToken(); // eat def.
     auto Proto = ParsePrototype(level+1);
@@ -732,10 +732,10 @@ std::unique_ptr<FunctionAST> ParseDefinition(int level)
 /// toplevelexpr ::= expression
 std::unique_ptr<FunctionAST> ParseTopLevelExpr(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse top level\n");
+	printwq("parse top level\n");*/
 
 	if (auto E = ParseExpression(level+1))
 	{
@@ -753,10 +753,10 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr(int level)
 /// external ::= 'extern' prototype
 std::unique_ptr<PrototypeAST> ParseExtern(int level)
 {
-	for(int i=0;i<level;i++){
+/*	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse extern\n");
+	printwq("parse extern\n");*/
 	getNextToken(); // eat extern.
 	return ParsePrototype(level+1);
 }

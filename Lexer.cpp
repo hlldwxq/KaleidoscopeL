@@ -9,14 +9,16 @@
 // The lexer returns tokens [0-255] if it is an unknown character, otherwise one
 // of these for known things.
 
-int fileIndex;
+int fileIndex=0;
 std::string IdentifierStr; // Filled in if tok_identifier
 double NumVal;			  // Filled in if tok_number
 
 int getChar(){
 
-	
+//	printint(fileIndex);
+//	printwq("   size\n");
     if(fileIndex < fileStr.size()){
+		
         int c = fileStr[fileIndex++];
         return c;
     }else{
