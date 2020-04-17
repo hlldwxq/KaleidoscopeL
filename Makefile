@@ -11,3 +11,11 @@ start: $(C_OBJECTS)
 
 clean:
 	$(RM) $(C_OBJECTS)
+
+file.ll: Kaleidoscope file.k
+	./Kaleidoscope > file.ll 2>&1 || echo "Ignoring Kaleidoscope failure"
+	sed -i '/^Segmentation fault/d' file.ll
+
+interface_file: interface_file.c file.ll
+	llvm-as-10 -disable-output file.ll  # Just a well-formedness check, as clang tends to simply segfault on malformed llvm code
+	clang -Wall -Wextra -g -o interface_file interface_file.c file.ll
