@@ -31,7 +31,7 @@ std::string int2Str(int i) {
 /// numberexpr ::= number
 static std::unique_ptr<ExprAST> ParseNumberExpr(int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse number\n");*/
@@ -62,7 +62,7 @@ static std::unique_ptr<ExprAST> ParseParenExpr(int level)
 }
 
 /// varexpr ::= 'var' identifier ('=' expression)?
-///                    (',' identifier ('=' expression)?)* 'in' expression
+///                    (',' identifier ('=' expression)?)*
 static std::unique_ptr<ExprAST> ParseVarExpr(int level)
 {
 /*	for(int i=0;i<level;i++){
@@ -242,7 +242,7 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 ///   ::= { primary+ }
 static std::unique_ptr<ExprAST> ParsePrimary(int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse primary\n");*/
@@ -252,43 +252,43 @@ static std::unique_ptr<ExprAST> ParsePrimary(int level)
 	default:
 		return LogError("unknown token when expecting an expression");
 	case tok_identifier:
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 1\n");*/
 		return ParseIdentifierExpr(level+1);
 	case tok_number:
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 2\n");*/
 		return ParseNumberExpr(level+1);
 	case '(':
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 3\n");*/
 		return ParseParenExpr(level+1);
 	case tok_if:
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 4\n");*/
 		return ParseIfExpr(level+1);
 	case tok_for:
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 5\n");*/
 		return ParseForExpr(level+1);
 	case tok_var:
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 6\n");*/
 		return ParseVarExpr(level+1);
 	case tok_array:
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 7\n");*/
@@ -414,14 +414,14 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr(int level)
 }
 
 static std::unique_ptr<ExprAST> ParseBody(int level){
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse body");*/
 	auto bodyE = ParseExpression(level+1);
 
-	if(bodyE->getType()== ASTType::body){;
-	/*	for(int i=0;i<level;i++){
+	if(bodyE->getType()== ASTType::body){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse body no return\n");*/
@@ -430,7 +430,7 @@ static std::unique_ptr<ExprAST> ParseBody(int level){
 		std::vector<std::unique_ptr<ExprAST>> b;
 		b.push_back(move(bodyE));
 		std::unique_ptr<ExprAST> returnE;
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse body ret\n");*/
@@ -441,7 +441,7 @@ static std::unique_ptr<ExprAST> ParseBody(int level){
 /// ifexpr ::= 'if' expression 'then' expression 'else' expression
 static std::unique_ptr<ExprAST> ParseIfExpr(int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse if\n");*/
@@ -450,7 +450,7 @@ static std::unique_ptr<ExprAST> ParseIfExpr(int level)
 	// condition.
 	auto Cond = ParseExpression(level+1);
 	if (!Cond)
-		return nullptr;
+		return LogError("wrong condition");
 
 	if (CurTok != tok_then){
 		return LogError("expected then");
@@ -459,7 +459,7 @@ static std::unique_ptr<ExprAST> ParseIfExpr(int level)
 
 	auto Then = ParseBody(level+1);
 	if (!Then)
-		return nullptr;
+		return LogError("wrong then body");
 
 	if (CurTok != tok_else)
 		return LogError("expected else");
@@ -468,7 +468,7 @@ static std::unique_ptr<ExprAST> ParseIfExpr(int level)
 
 	auto Else = ParseBody(level+1);
 	if (!Else)
-		return nullptr;
+		return LogError("wrong else body");
 
 	return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then), std::move(Else));
 }
@@ -533,14 +533,14 @@ static std::unique_ptr<ExprAST> ParseForExpr(int level)
 ///   ::= '!' unary
 static std::unique_ptr<ExprAST> ParseUnary(int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse unary\n");*/
 	// If the current token is not an operator, it must be a primary expr.
 	if (!isascii(CurTok) || CurTok == '(' || CurTok == ',' || CurTok=='{') // ( �������ŵı���ʽ���� , ��ɶ��
 	{	
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse primary 1\n");*/
@@ -550,7 +550,7 @@ static std::unique_ptr<ExprAST> ParseUnary(int level)
 	int Opc = CurTok;
 	getNextToken();
 	if (auto Operand = ParseUnary(level+1)){
-	/*	for(int i=0;i<level;i++){
+		/*for(int i=0;i<level;i++){
 			printwq(" ");
 		}
 		printwq("end parse unary 2\n");*/
@@ -575,7 +575,7 @@ static std::unique_ptr<ExprAST> ParseUnary(int level)
 
 static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS, int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse binopRHS\n");*/
@@ -583,7 +583,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<Expr
 	while (true)
 	{
 		int TokPrec = GetTokPrecedence();
-
+		//printint(TokPrec);
 		// If this is a binop that binds at least as tightly as the current binop,
 		// consume it, otherwise we are done.
 		if (TokPrec < ExprPrec)
@@ -601,6 +601,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<Expr
 		// If BinOp binds less tightly with RHS than the operator after RHS, let
 		// the pending operator take RHS as its LHS.
 		int NextPrec = GetTokPrecedence();
+		//printint(NextPrec);
 		if (TokPrec < NextPrec)
 		{
 			RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS), level+1);
@@ -609,6 +610,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<Expr
 		}
 
 		// Merge LHS/RHS.
+		//printwq("binary AST \n");
 		LHS = std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
 	}
 }
@@ -617,7 +619,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<Expr
 ///   ::= unary binoprhs
 static std::unique_ptr<ExprAST> ParseExpression(int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
 	printwq("parse expression\n");*/

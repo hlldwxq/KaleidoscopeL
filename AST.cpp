@@ -12,11 +12,20 @@ int ExprAST::getType(){
 
 int GetTokPrecedence()
 {
+	//printwq("precedence\n");
+	BinopPrecedence['='] = 2;
+	BinopPrecedence['<'] = 10;
+	BinopPrecedence['>'] = 10;
+	BinopPrecedence['+'] = 20;
+	BinopPrecedence['-'] = 20;
+	BinopPrecedence['*'] = 40; // highest.
+
 	if (!isascii(CurTok))
 		return -1;
 
 	// Make sure it's a declared binop.
 	int TokPrec = BinopPrecedence[CurTok];
+	//printint(TokPrec);
 	if (TokPrec <= 0) 
 		return -1;
 	return TokPrec;
@@ -176,6 +185,10 @@ Value *BinaryExprAST::codegen()
 		return Builder.CreateFMul(L, R, "multmp");
 	case '<':
 		L = Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
+		// Convert bool 0/1 to double 0.0 or 1.0
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case '>':
+		L = Builder.CreateFCmpULT(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
 		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	default:
