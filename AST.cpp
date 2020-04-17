@@ -16,9 +16,11 @@ int GetTokPrecedence()
 	BinopPrecedence['='] = 2;
 	BinopPrecedence['<'] = 10;
 	BinopPrecedence['>'] = 10;
+	BinopPrecedence['~'] = 10;
 	BinopPrecedence['+'] = 20;
 	BinopPrecedence['-'] = 20;
 	BinopPrecedence['*'] = 40; // highest.
+	BinopPrecedence['/'] = 40; // highest.
 
 	if (!isascii(CurTok))
 		return -1;
@@ -183,12 +185,18 @@ Value *BinaryExprAST::codegen()
 		return Builder.CreateFSub(L, R, "subtmp");
 	case '*':
 		return Builder.CreateFMul(L, R, "multmp");
+	case '/':
+		return Builder.CreateFDiv(L, R, "divmp");
 	case '<':
 		L = Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
 		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case '>':
 		L = Builder.CreateFCmpULT(R, L, "cmptmp"); //cmp -> compare
+		// Convert bool 0/1 to double 0.0 or 1.0
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case '~':
+		L = Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
 		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	default:

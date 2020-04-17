@@ -1,0 +1,200 @@
+
+Platform independent LLVM dialect
+
+  minimum: pointer operations. pointers as first-class citizens.
+    fail-safe malloc.
+    how to handle sizes? what is a good memory model? How abstract/concrete?
+
+size_t x;
+i128 n;
+
+x = n
+->
+if n does not fit in size_t then ERROR() else x = n
+
+
+size_t x;
+i8 n;
+
+n = x  // no dynamic check
+
+void f(i128 n) {  // assume n>500
+  if (n<=500) error();
+
+  i32 *p1 = new<i32>[cast<size_t>(n)] // dynamic check on cast, second dynamic check for out-of-memory
+  i32 *p2 = p1 + 500; // no dynamic check
+
+  cast<i16>(p2 - p1)  // no dynamic check
+
+
+
+
+
+Trying to layout a minimal language:
+
+
+  Types: (subset of) the llvm-types: iN, T*, {T1,...,TN}
+    and: size_t (unspecified size, enough to hold pointer difference)
+
+    *** Careful: LLVM does not know about signed/unsigned types. The signedness is encoded in the operations instead!
+      A first extension might be to encode signedness in types, e.g, have u32 and s32 types.
+
+
+  Lvalue-Expressions:
+    variable: x
+    pointer deref: *expr
+    array indexing: expr[expr] *** Careful: Specify if index has signed or unsigned interpretation!
+
+  Expressions:
+    constant: 6, ...
+    lvalue-expression
+    function call: f(e1,...eN)
+
+    conversions from and to size_t:
+      cast<size_t>(expr) -- converts integer to size_t, abort if out-of-range
+      cast<iN>(expr) -- converts size_t or other integer to iN, unsigned. No dynamic checks.
+      signed_cast<iN>(expr) -- integer to integer, signed, no dynamic checks.
+
+
+    arithmetic operations: x+y, a-b, a *s b, a *u b, (u -- unsigned, s -- signed, p -- pointer)
+      pointer operations:
+        pointer + integer -> pointer  //no dynamic check
+        pointer - pointer -> size_t
+
+
+    comparison: ==, !=, <u, <=u, <s, <=s, <p, <=p
+    boolean operations: !a, a & b, c | 4
+
+  Commands:
+    Assignment: lval=expr
+    Return: return [expr]
+    Function call: f(expr,...)
+      result is ignored. function may be void.
+    Sequence: cmd1; cmd2
+    Block: { cmd }
+      Do nothing: {}
+    If: if b then cmd 1 [else cmd2]
+    While: while (b) cmd
+    optional: break, continue
+
+  Structure:
+    Variable declaration: type name [=expression];
+      scope of variable: current block
+    Function def: [type|void] name([type name]*) cmd
+    Function decl: [type|void] name([type name]*);
+
+  Built-in functions / expressions:
+    T* new<T>(size_t n) -- allocate array with n elements of type T
+    delete(T*)          -- delete allocated array
+
+
+
+  Rationale behind the size_t type:
+    All casts to size_t are dynamically checked for overflow.
+    "new" takes a size_t type.
+    Casts from size_t need not to be checked.
+      Pointer difference is the only primitive that produces a size_t.
+      The programmer knows a safe estimate for this size, as they have allocated the pointer at some point.
+
+Some example programs:
+
+i64 euclid(i64 a, i64 b) {
+
+  while (a!=b) {
+    if (a>b) a=a-b
+    else b=b-a
+  }
+
+  return a
+}
+
+
+/*
+  Assume 0-terminated string.
+  We use a size_t counter for the index here. It needs not be checked for overflow,
+    as we know that the string is stored in a memory block, and thus cannot be longer
+    than the maximum value of size_t.
+
+    However, the constants 0 and 1 must be checked to fit into size_t (which should be obvious for small constants, but may not be the casefor bigger ones!)
+    E.g. on a 32 bit machine, the following command should fail to compile:
+      size_t i = 0x1000000000
+    while it's fine on a 64 bits architecture.
+*/
+i1 contains(i8 *p, i8 c) {
+  size_t i=0;
+  while (p[i] != 0) {
+    if (p[i] == c) return 1;
+    i = i + 1;  // No overflow check required
+  }
+  return false;
+}
+
+
+/*
+  Check if zero-terminated string has duplicate character, using a histogram array
+
+  "abcde"
+  "abcade"
+
+*/
+i1 has_duplicates(i8 *p) {
+  i1* h = new<i1>(cast<size_t>(256));
+
+  // Initialize array: We know that the index will fit into size_t, as we could allocate a block with 256 elements.
+  size_t i = 0; while (i<cast<size_t>(256)) { h[i]=0; i=i+1; }
+
+  while (*p != 0) {
+    if (h[*p]) { delete h; return true;}
+    h[*p]=1;
+    p=p+1;
+  }
+  delete h;
+  return false;
+}
+
+/*
+  Check if given range p..q has duplicates, assuming that all numbers in range are <n
+*/
+i1 has_duplicates2(i128 *p, i128 *q, i128 n) {
+  size_t nn = cast<size_t>(n); // This can actually fail dynamically, if n is too big.
+
+  i1* h = new<i1>(nn);
+
+  // Initialize array: We know that the index will fit into size_t, as we could allocate a block with n elements.
+  size_t i = 0; while (i<n) { h[i]=0; i=i+1; }
+
+  while (p != q) {
+    if (h[*p]) {delete h; return true;}  // No dynamic check required for array indexing. We assume that the number are <n.
+    h[*p]=1;
+    p=p+1;
+  }
+  delete h;
+  return false;
+}
+
+/*
+  Copy range
+*/
+i64* copy(i64 *p, i64 *q) {
+  size_t n = q-p;  // No dynamic check required, pointer difference always fits into size_t
+  i64 *res = new<i64>(n);
+
+  while (p!=q) {
+    *res=*p;
+    res=res+1;
+    p=p+1;
+  }
+
+}
+
+
+
+
+
+Additional Ideas/Tasks
+  Stack safe (see rust impl)
+
+
+
+
+

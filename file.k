@@ -1,8 +1,34 @@
-# Can I pass parameters?
-# def double func(double a) {
-#   var n = 4
-#   return n
+# def double test(n) {
+#   var r
+#   n = 5
+#
+#   if n<4 then r=42 else r=43
+#
+#   return r
+#
 # }
+
+
+# Can I pass parameters?
+def double fib(n) {
+  var res
+  if n~0 then res=1
+  else {
+    if n~1 then res=1
+    else res=fib(n-2)+fib(n-1)
+  }
+
+  return res
+}
+
+
+def double fib5() {
+  var xx
+  xx = fib(11)
+  return xx
+}
+
+
 
 # Are there other types than double
 # def int func() {
@@ -12,57 +38,54 @@
 
 # This does not compile?
 # def double constfun() {
-#   return 0
+#   return 4
 # }
 
-def double test() {
-  var res = 0
-  var sign = 1
-  var tmp
-
-  var i = 2
-
-  tmp = sign / i    # Something broken here?
-  res = res + tmp
-
-  return res
-}
-
-def double test2() {
-  var n = 50
-  array a = [50]
-# array a = [n]  Does not work?
-
-  for i=0, i<n-1 in {
-    a[i] = i
-  }
-
- var res = 0
-
- for i=0, i<n-1 in {
-   res = res + a[i]
- }
-
-  return res
-}
-
-
-
-# Using Gregory-Leibniz series
-def double pi(){
-  var res = 0
- var sign = 1
-  var tmp
-  for i = 1, i < 5, 2 in {    # Interpretation of < seems to be <=?
-    tmp=sign / i
-    res=res+tmp
-#    # res = res + sign / i   This seems to be translated as (res + sign) / i. Parenthesis do not work.
-#    sign=-sign
-#    res = res + i
-  }
-
-  return res
-}
+# def double test() {
+#   var res = 0
+#   var sign = 1
+#   var tmp
+#
+#   var i = .5
+#
+#   tmp = sign / i    # SOLVED: Something broken here?
+#   res = res + tmp
+#
+#   return res
+# }
+#
+# def double test2() {
+#   var n = 50
+#   array a = [50]
+# # array a = [n]  Does not work?
+#
+#   for i=0, i<n-1 in {
+#     a[i] = i
+#   }
+#
+#  var res = 0
+#
+#  for i=0, i<n-1 in {
+#    res = res + a[i]
+#  }
+#
+#   return res
+# }
+#
+#
+#
+# # Using Gregory-Leibniz series
+# # \pi / 4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 ...
+# def double pi(){
+#   var res = 0
+#   var sign = 1
+#   for i = 1, i < 1000000, 2 in {    # Interpretation of < seems to be <=?
+#     res = res + sign / i
+#     sign=0-sign
+#   }
+#
+#   return res*4
+# }
 
 
 # def double func(){
