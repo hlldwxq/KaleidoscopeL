@@ -187,30 +187,30 @@ Value *BinaryExprAST::codegen()
 	case division:
 		return Builder.CreateFDiv(L, R, "divmp");
 	case lessThen:
-		return Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
-		// Convert bool 0/1 to double 0.0 or 1.0
-		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		L = Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
+		//Convert bool 0/1 to double 0.0 or 1.0
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case moreThen:
 		//printwq("============here================\n");
-		return Builder.CreateFCmpUGT(L, R, "cmptmp"); //cmp -> compare
+		L = Builder.CreateFCmpUGT(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case lessEqual:
-		return Builder.CreateFCmpULE(L, R, "cmptmp"); //cmp -> compare
+		L = Builder.CreateFCmpULE(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case moreEqual:
-		return Builder.CreateFCmpUGE(R, L, "cmptmp"); //cmp -> compare
+		L = Builder.CreateFCmpUGE(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case equalSign:
-		return Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
+		L = Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case notEqual:
-		return Builder.CreateFCmpUNE(R, L, "cmptmp"); //cmp -> compare
+		L = Builder.CreateFCmpUNE(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	default:
 		break;
 	}
