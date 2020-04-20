@@ -28,8 +28,7 @@ int getChar(){
 /// gettok - Return the next token from standard input.
 static int gettok()
 {
-	/*fprintf(stderr,"gettok\n");
-	fprintf(stderr,"curtoken: %d \n",CurTok);*/
+	
 	static int LastChar = ' ';
 
 	// Skip any whitespace.
@@ -115,8 +114,65 @@ static int gettok()
 		return tok_eof;
 
 	// Otherwise, just return the character as its ascii value.
-	int ThisChar = LastChar;
+	switch(LastChar)
+	{
 
+	case '=':
+		LastChar = getChar();
+		if(LastChar == '='){
+			LastChar = getChar();
+			return equalSign;
+		}else{
+			return assignment;
+		}
+		break;
+	case '!':
+		LastChar = getChar();
+		if(LastChar == '='){
+			LastChar = getChar();
+			return notEqual;
+		}else{
+			return notSign;
+		}
+		break;
+	case '>':
+	LastChar = getChar();
+		if(LastChar == '='){
+			LastChar = getChar();
+			return moreEqual;
+		}else{
+			return moreThen;
+		}
+		break;
+	case '<':
+		LastChar = getChar();
+		if(LastChar == '='){
+			LastChar = getChar();
+			return lessEqual;
+		}else{
+			return lessThen;
+		}
+		break;
+	case '+':
+		LastChar = getChar();
+		return plus;
+		break;
+	case '-':
+		LastChar = getChar();
+		return minus;
+		break;
+	case '*':
+		LastChar = getChar();
+		return mult;
+		break;
+	case '/':
+		LastChar = getChar();
+		return division;
+		break;
+		
+	}
+
+	int ThisChar = LastChar;
 	LastChar = getChar();
 	return ThisChar;
 }

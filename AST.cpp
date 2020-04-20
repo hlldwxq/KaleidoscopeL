@@ -13,17 +13,20 @@ int ExprAST::getType(){
 int GetTokPrecedence()
 {
 	//printwq("precedence\n");
-	BinopPrecedence['='] = 2;
-	BinopPrecedence['<'] = 10;
-	BinopPrecedence['>'] = 10;
-	BinopPrecedence['~'] = 10;
-	BinopPrecedence['+'] = 20;
-	BinopPrecedence['-'] = 20;
-	BinopPrecedence['*'] = 40; // highest.
-	BinopPrecedence['/'] = 40; // highest.
+	BinopPrecedence[assignment] = 2;  // =
+	BinopPrecedence[lessThen] = 10;   // <
+	BinopPrecedence[moreThen] = 10;   // >
+	BinopPrecedence[lessEqual] = 10;  // <=
+	BinopPrecedence[moreEqual] = 10;  // >=
+	BinopPrecedence[notEqual] = 10;  // ==
+	BinopPrecedence[equalSign] = 10;  // ==
+	BinopPrecedence[plus] = 20;       // +
+	BinopPrecedence[minus] = 20;	  // -
+	BinopPrecedence[mult] = 40; 	  // *
+	BinopPrecedence[division] = 40;   // /
 
-	if (!isascii(CurTok))
-		return -1;
+	//if (!isascii(CurTok))
+	//	return -1;
 
 	// Make sure it's a declared binop.
 	int TokPrec = BinopPrecedence[CurTok];
@@ -114,7 +117,7 @@ Value *UnaryExprAST::codegen()
 	if (!OperandV)
 		return nullptr;
 
-	Function *F = getFunction(std::string("unary") + Opcode);
+	Function *F = getFunction(std::string("unary") + (char)Opcode);
 	if (!F)
 		return LogErrorV("Unknown unary operator");
 
@@ -125,7 +128,9 @@ Value *UnaryExprAST::codegen()
 Value *BinaryExprAST::codegen()
 {
 //	printwq("codegen binary\n");
-	if (Op == '=')
+	printint(Op);
+	printint(moreThen);
+	if (Op == assignment)
 	{
 		if (LHS->getType() != variable && LHS->getType() != callArray){
             return LogErrorV("expected variable or array element");
@@ -148,17 +153,11 @@ Value *BinaryExprAST::codegen()
 
 				arrayPtr = Builder.CreateLoad(arrayPtr);
 
-				/*Value *index = LHSE->getIndex()->codegen();
-				
-				Variable = Builder.CreateGEP(cast<PointerType>(realArrayPtr->getType()->getScalarType())->getElementType(),
-											realArrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
-				*/
 			}
-			//else{
-				Value *index = LHSE->getIndex()->codegen();
-				Variable = Builder.CreateGEP(cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType(),
+			
+			Value *index = LHSE->getIndex()->codegen();
+			Variable = Builder.CreateGEP(cast<PointerType>(arrayPtr->getType()->getScalarType())->getElementType(),
 												arrayPtr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
-			//}
 		}
 		
         if (!Variable){
@@ -179,33 +178,48 @@ Value *BinaryExprAST::codegen()
 
 	switch (Op)
 	{
-	case '+':
+	case plus:
 		return Builder.CreateFAdd(L, R, "addtmp");
-	case '-':
+	case minus:
 		return Builder.CreateFSub(L, R, "subtmp");
-	case '*':
+	case mult:
 		return Builder.CreateFMul(L, R, "multmp");
-	case '/':
+	case division:
 		return Builder.CreateFDiv(L, R, "divmp");
-	case '<':
-		L = Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
+	case lessThen:
+		return Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
-	case '>':
-		L = Builder.CreateFCmpULT(R, L, "cmptmp"); //cmp -> compare
+		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case moreThen:
+		//printwq("============here================\n");
+		return Builder.CreateFCmpUGT(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
-	case '~':
-		L = Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
+		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case lessEqual:
+		return Builder.CreateFCmpULE(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case moreEqual:
+		return Builder.CreateFCmpUGE(R, L, "cmptmp"); //cmp -> compare
+		// Convert bool 0/1 to double 0.0 or 1.0
+		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case equalSign:
+		return Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
+		// Convert bool 0/1 to double 0.0 or 1.0
+		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+	case notEqual:
+		return Builder.CreateFCmpUNE(R, L, "cmptmp"); //cmp -> compare
+		// Convert bool 0/1 to double 0.0 or 1.0
+		//return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	default:
 		break;
 	}
 
 	// If it wasn't a builtin binary operator, it must be a user defined one. Emit a call to it.
-	Function *F = getFunction(std::string("binary") + Op);
-	assert(F && "binary operator not found!");
+	Function *F = getFunction(std::string("binary") + (char)Op);
+	if(!F){
+		return LogErrorV("error binary op");
+	}
 
 	Value *Ops[] = {L, R};
 
@@ -262,9 +276,9 @@ Value *IfExprAST::codegen()
 	Builder.SetInsertPoint(ThenBB);
 
 	Value *ThenV = Then->codegen();
-	if (!ThenV)
+	/*if (!ThenV)
 		return nullptr;
-
+	*/
 	Builder.CreateBr(MergeBB);
 	// Codegen of 'Then' can change the current block, update ThenBB for the PHI.
 	ThenBB = Builder.GetInsertBlock();
@@ -274,9 +288,9 @@ Value *IfExprAST::codegen()
 	Builder.SetInsertPoint(ElseBB);
 
 	Value *ElseV = Else->codegen();
-	if (!ElseV)
+	/*if (!ElseV)
 		return nullptr;
-
+	*/
 	Builder.CreateBr(MergeBB);
 	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
 	ElseBB = Builder.GetInsertBlock();
@@ -495,19 +509,6 @@ Value *VarExprAST::codegen()
         return B;
 	}
 
-	/*
-    // Codegen the body, now that all vars are in scope.
-	Value *BodyVal = Body->codegen();
-	if (!BodyVal)
-		return nullptr;
-
-	// Pop all our variables from scope.
-	for (unsigned i = 0, e = VarNames.size(); i != e; ++i)
-		NamedValues[VarNames[i].first] = OldBindings[i];
-
-	// Return the body computation.
-    */
-//   printwq("codegen var end2\n");
 	return nullptr;
 }
 
@@ -536,21 +537,23 @@ Function *PrototypeAST::codegen()
 	return F;
 }
 
-Value *BodyAST::codegen()
+Value* BodyAST::codegen()
 {
 //	printwq("codegen body\n");
 
 	for(int i = 0;i<bodys.size();i++){
-		(bodys[i])->codegen();
+		if(i==bodys.size()-1){
+			return bodys[i]->codegen();
+		}	
+		bodys[i]->codegen();
 	}
-	if(!returnE){
-//		printwq("codegen body end1\n");
-        return Constant::getNullValue(Type::getDoubleTy(TheContext));
-    }else{
-		Value* returnV = returnE->codegen();
-//		printwq("codegen body end2\n");
-        return std::move(returnV);
-    }
+	
+}
+
+Value *ReturnAST::codegen(){
+	Value* returnValue = returnE->codegen();
+	Builder.CreateRet(returnValue);
+	return returnValue;
 }
 
 Function *FunctionAST::codegen()
@@ -581,26 +584,13 @@ Function *FunctionAST::codegen()
 		Builder.CreateStore(&Arg, Alloca);
 		NamedValues[std::string(Arg.getName())] = Alloca;
 	}
-	/*for (int i = 0; i < Body.size(); i++)
-	{
-		std::unique_ptr<ExprAST> expr = move(Body[i]);
-		Value *Val = expr->codegen();
-	}*/
 
-	Value* BodyV = Body->codegen();
-	Builder.CreateRet(BodyV);
-    // Finish off the function.
-	//int i = P.getReturnType();
-	//printint(i);
-  /*  if(P.getReturnType() == voidR){
-        Builder.CreateRetVoid();
-    }else{
-        Builder.CreateRet(returnE->codegen());
-    }*/
-
+	Body->codegen();
+	
     // Validate the generated code, checking for consistency.
     verifyFunction(*TheFunction);
-    // Run the optimizer on the function.  // TheFPM->run(*TheFunction);
+    // Run the optimizer on the function.  
+	// TheFPM->run(*TheFunction);
     return TheFunction;
 
 	// Error reading body, remove function.

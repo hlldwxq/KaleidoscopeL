@@ -3,7 +3,7 @@
 #include "Parser.h"
 
 std::string fileStr;
-std::map<char, int> BinopPrecedence;
+std::map<int, int> BinopPrecedence;
 int CurTok;
 //===----------------------------------------------------------------------===//
 // Top-Level parsing and JIT Driver

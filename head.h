@@ -75,6 +75,19 @@ enum Token
     tok_return = -20,
 	// error
 	lexerE = -21,
+	//symbal
+	equalSign = 128,  //==
+	notEqual = 129,   //!=
+	lessThen = 130,   //<
+	moreThen = 131,   //>
+	lessEqual = 132,  //<=
+	moreEqual = 133,  //>=
+	assignment = 134, //=
+	plus = 135,		  //+
+	minus = 136,      //-
+	mult = 137,       //*
+	division = 138,   // /
+	notSign = 139,		  // -
 };
 enum ASTType{
 	variable = -1,
@@ -92,6 +105,7 @@ enum ASTType{
 	function = -11,
 	proto = -12,
 	body = -13,
+	returnT = -14
 
 };
 enum returnType{

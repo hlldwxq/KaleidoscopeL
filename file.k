@@ -9,23 +9,14 @@
 # }
 
 
-# Can I pass parameters?
-def double fib(n) {
-  var res
-  if n~0 then res=1
-  else {
-    if n~1 then res=1
-    else res=fib(n-2)+fib(n-1)
-  }
 
-  return res
-}
-
-
-def double fib5() {
-  var xx
-  xx = fib(11)
-  return xx
+def double fib() 
+{
+  var a 
+  a= 4.5
+  if 4>a
+  then return 4.5
+  else return 6.5
 }
 
 

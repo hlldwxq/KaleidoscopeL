@@ -4,7 +4,7 @@
 
 /// BinopPrecedence - This holds the precedence for each binary operator that is
 /// defined.
-extern std::map<char, int> BinopPrecedence;
+extern std::map<int, int> BinopPrecedence;
 
 /// GetTokPrecedence - Get the precedence of the pending binary operator token.
 int GetTokPrecedence();
@@ -50,11 +50,11 @@ public:
 /// UnaryExprAST - Expression class for a unary operator.
 class UnaryExprAST : public ExprAST
 {
-	char Opcode;					  
+	int Opcode;					  
 	std::unique_ptr<ExprAST> Operand; 
 
 public:
-	UnaryExprAST(char Opcode, std::unique_ptr<ExprAST> Operand)
+	UnaryExprAST(int Opcode, std::unique_ptr<ExprAST> Operand)
 		: Opcode(Opcode), Operand(std::move(Operand)) {type = ASTType::unary;}
 
 	Value *codegen() override;
@@ -63,11 +63,11 @@ public:
 /// BinaryExprAST - Expression class for a binary operator.
 class BinaryExprAST : public ExprAST
 {
-	char Op;
+	int Op;
 	std::unique_ptr<ExprAST> LHS, RHS;
 
 public:
-	BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS,
+	BinaryExprAST(int Op, std::unique_ptr<ExprAST> LHS,
 				  std::unique_ptr<ExprAST> RHS)
 		: Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {type = ASTType::binary;}
 
@@ -90,14 +90,14 @@ public:
 
 class BodyAST: public ExprAST{
 	std::vector<std::unique_ptr<ExprAST>> bodys;
-	std::unique_ptr<ExprAST> returnE;
+	//std::unique_ptr<ExprAST> returnE;
 
 public:
-	BodyAST(std::unique_ptr<ExprAST> returnE1,std::vector<std::unique_ptr<ExprAST>> bodys1){
+	BodyAST(/*std::unique_ptr<ExprAST> returnE1,*/std::vector<std::unique_ptr<ExprAST>> bodys1){
 		for(int i=0;i<bodys1.size();i++){
 			bodys.push_back(move(bodys1[i]));
 		}
-		returnE = move(returnE1);
+		//returnE = move(returnE1);
 		type = ASTType::body;
 	}
 	Value* codegen();
@@ -271,6 +271,17 @@ public:
 	Value *codegen();
 };
 
+///returnExpr
+class ReturnAST : public ExprAST
+{
+	std::unique_ptr<ExprAST> returnE;
+public:
+	ReturnAST(std::unique_ptr<ExprAST> returnE) : returnE(move(returnE)) {
+		type = returnT;
+	}
+	
+	Value *codegen();
+};
  // end anonymous namespace
 
 extern std::unique_ptr<Module> TheModule;
