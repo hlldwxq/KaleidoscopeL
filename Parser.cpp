@@ -501,10 +501,10 @@ static std::unique_ptr<ExprAST> ParseIfExpr(int level){
 ///    putchard(42);
 static std::unique_ptr<ExprAST> ParseForExpr(int level)
 {
-/*	for(int i=0;i<level;i++){
+	for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse for\n");*/
+	printwq("parse for\n");
 	getNextToken(); // eat the for.
 
 	if (CurTok != tok_identifier)
@@ -513,7 +513,7 @@ static std::unique_ptr<ExprAST> ParseForExpr(int level)
 	std::string IdName = IdentifierStr;
 	getNextToken(); // eat identifier.
 
-	if (CurTok != '=')
+	if (CurTok != assignment)
 		return LogError("expected '=' after for");
 	getNextToken(); // eat '='.
 
@@ -567,7 +567,10 @@ static std::unique_ptr<ExprAST> ParseUnary(int level)
 			printwq(" ");
 		}
 		printwq("end parse primary 1\n");*/
-		return ParsePrimary(level+1);
+		if(CurTok != minus || CurTok != plus || CurTok != notSign){
+			return ParsePrimary(level+1);
+		}
+		
 	}
 	// If this is a unary operator, read it.
 	int Opc = CurTok;
