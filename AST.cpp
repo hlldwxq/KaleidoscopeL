@@ -83,11 +83,14 @@ Function *getFunction(std::string Name)
 
 /// CreateEntryBlockAlloca - Create an alloca instruction in the entry block of
 /// the function.  This is used for mutable variables etc.
-static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction, StringRef VarName, int num)
+static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction, StringRef VarName, int varType)
 {
-
-	IRBuilder<> TmpB(&TheFunction->getEntryBlock(), TheFunction->getEntryBlock().begin());
-	return TmpB.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), num), VarName);
+	switch(varType){
+	case tok_double:
+		return Builder.CreateAlloca(Type::getDoubleTy(TheContext),nullptr, VarName);
+	case tok_i1:
+		return 
+	}
 }
 
 
@@ -117,6 +120,14 @@ Value *UnaryExprAST::codegen()
 	if (!OperandV)
 		return nullptr;
 
+	if(Opcode == notSign){
+		return Builder.CreateNot(OperandV);
+	}else if(Opcode == minus){
+		return Builder.CreateFNeg(OperandV);
+	}else if(Opcode == plus){
+		return OperandV;
+	}
+
 	Function *F = getFunction(std::string("unary") + (char)Opcode);
 	if (!F)
 		return LogErrorV("Unknown unary operator");
@@ -128,8 +139,8 @@ Value *UnaryExprAST::codegen()
 Value *BinaryExprAST::codegen()
 {
 //	printwq("codegen binary\n");
-	printint(Op);
-	printint(moreThen);
+//	printint(Op);
+//	printint(moreThen);
 	if (Op == assignment)
 	{
 		if (LHS->getType() != variable && LHS->getType() != callArray){
@@ -187,30 +198,30 @@ Value *BinaryExprAST::codegen()
 	case division:
 		return Builder.CreateFDiv(L, R, "divmp");
 	case lessThen:
-		L = Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
+		return Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
 		//Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case moreThen:
 		//printwq("============here================\n");
-		L = Builder.CreateFCmpUGT(L, R, "cmptmp"); //cmp -> compare
+		return Builder.CreateFCmpUGT(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case lessEqual:
-		L = Builder.CreateFCmpULE(L, R, "cmptmp"); //cmp -> compare
+		return  Builder.CreateFCmpULE(L, R, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case moreEqual:
-		L = Builder.CreateFCmpUGE(R, L, "cmptmp"); //cmp -> compare
+		return Builder.CreateFCmpUGE(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case equalSign:
-		L = Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
+		return Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case notEqual:
-		L = Builder.CreateFCmpUNE(R, L, "cmptmp"); //cmp -> compare
+		return Builder.CreateFCmpUNE(R, L, "cmptmp"); //cmp -> compare
 		// Convert bool 0/1 to double 0.0 or 1.0
-		return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	default:
 		break;
 	}
@@ -257,10 +268,6 @@ Value *IfExprAST::codegen()
 	Value *CondV = Cond->codegen();
 	if (!CondV)
 		return nullptr;
-
-	// Convert condition to a bool by comparing non-equal to 0.0.
-	CondV = Builder.CreateFCmpONE(
-		CondV, ConstantFP::get(TheContext, APFloat(0.0)), "ifcond");
 
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 
@@ -369,8 +376,8 @@ Value *ForExprAST::codegen()
 	Builder.CreateStore(NextVar, Alloca);
 
 	// Convert condition to a bool by comparing non-equal to 0.0.
-	EndCond = Builder.CreateFCmpONE(
-		EndCond, ConstantFP::get(TheContext, APFloat(0.0)), "loopcond");
+	// EndCond = Builder.CreateFCmpONE(
+	//	EndCond, ConstantFP::get(TheContext, APFloat(0.0)), "loopcond");
 
 	// Create the "after loop" block and insert it.
 	BasicBlock *AfterBB = BasicBlock::Create(TheContext, "afterloop", TheFunction);
