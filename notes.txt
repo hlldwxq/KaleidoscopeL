@@ -1,0 +1,141 @@
+
+  codegen(a+(b+c)) -> %x
+    %1 = codegen(a)
+      %1 = load a
+    %2 = codegen(b+c)
+      %2 = ...
+    %x = %1 + %2
+
+  %x = a+b+c
+
+  codegen(if a then b else c) -> %x
+    codegen(a) -> %1
+    br %1 labelThen labelElse
+
+    labelThen:
+      codegen b -> %2
+      br labelJoin
+
+    labelElse:
+      codegen c -> %2
+      br labelJoin
+
+    labelJoin:
+      %x = phi %2 labelThen, %2 labelElse
+
+  x = (return a)::void
+
+  codegen(return a) -> %x
+    codegen(a) -> %1
+    ret %1
+
+
+  if a then return x else return y
+
+  labelIf: return
+  newBasicBlock: br labelJoin -> voidValue
+
+  labelElse: return;
+  newBB2: br labelJoin -> voidValue
+
+  labelJoin:
+    ; %x = phi void newBasicBlock, void newBB2
+
+  codegen(if...) -> voidValue
+
+
+
+
+
+  %x = (return a) :: double == 0
+
+
+  return a:
+
+    codegen(a) -> %1
+    ret %1
+
+    newBB:
+      constValue(0::double)
+
+
+
+
+
+  array a[size]
+
+  var a : double * = new(size)
+
+fib() {
+  var x
+  if b then {
+    var a = 1   // namedValues["a"]::Value*, holds pointer to a
+    x = a
+  } else {
+    x = a
+  }
+
+
+
+Scoping:
+
+template<typename name,typename value> class Scope {
+  void clear();
+
+  // x = namedValues[name]
+  value lookup(name)
+
+  // namedValues[name] = value
+  // Error on duplicate definition
+  void define(name,value)
+
+  // {
+  void pushScope()
+
+  // }
+  void popScope()
+
+}
+
+Implementation1:
+
+vector<unordered_map<name,value>> stack;
+
+stack = map1,map2,map3,map4
+
+lookup x: map4.lookup, map3.lookup ...
+
+define x v:
+  if (map4.contains(x)) error("duplicate def")
+  map4[x]=v
+
+pushScope: stack.push_back(empty-map)
+popScope: stack.pop_back()
+
+************************
+Implementation2: complicated! not worth it!
+
+unordered_map<name,value> map;
+vector<vector<pair<name,value>>> stack;
+
+lookup n = map[n]
+define n v =
+  // defined check problematic!
+  stack.last().push_back({n,map[n]})
+  map[n]=v
+
+pushScope // {
+  stack.push_back(vector::empty())
+
+popScope // }
+  while (!stack.last().empty()) {
+    auto {n,v} = stack.last().pop_back()
+    map[n]=v
+  }
+
+  stack.pop_back()
+
+
+
+
+

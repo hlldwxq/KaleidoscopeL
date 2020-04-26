@@ -1,6 +1,10 @@
 C_SOURCES = $(shell find . -name "*.cpp")
 C_OBJECTS = $(patsubst %.cpp, %.o, $(C_SOURCES))
+<<<<<<< HEAD
 C_FLAGS = `llvm-config-10 --cxxflags --ldflags --system-libs --libs core mcjit native orcjit` -rdynamic
+=======
+C_FLAGS = -Wall `llvm-config --cxxflags --ldflags --system-libs --libs core mcjit native orcjit` -rdynamic
+>>>>>>> 56401e5da7d01955778b369b4c8a6f354dca057e
 
 start: $(C_OBJECTS)
 	clang++-10 -g $(C_OBJECTS) $(C_FLAGS) -o Kaleidoscope
