@@ -73,6 +73,22 @@ static int gettok()
             return tok_return;
 		if(IdentifierStr == "new")
 			return tok_new;
+		if(IdentifierStr == "i1")
+			return tok_i1;
+		if(IdentifierStr == "i8")
+			return tok_i8;
+		if(IdentifierStr == "i16")
+			return tok_i16;
+		if(IdentifierStr == "i32")
+			return tok_i32;
+		if(IdentifierStr == "i64")
+			return tok_i64;
+		if(IdentifierStr == "i128")
+			return tok_i128;
+		if(IdentifierStr == "size_t")
+			return tok_sizeT;	
+		if(IdentifierStr == "double")
+			return tok_double;
 		return tok_identifier;
 	}
 

@@ -85,12 +85,15 @@ Function *getFunction(std::string Name)
 /// the function.  This is used for mutable variables etc.
 static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction, StringRef VarName, int varType)
 {
+	return Builder.CreateAlloca(Type::getDoubleTy(TheContext),nullptr, VarName);
+	/*
+	/// loading ....
 	switch(varType){
 	case tok_double:
 		return Builder.CreateAlloca(Type::getDoubleTy(TheContext),nullptr, VarName);
 	case tok_i1:
 		return 
-	}
+	}*/
 }
 
 
@@ -138,9 +141,7 @@ Value *UnaryExprAST::codegen()
 
 Value *BinaryExprAST::codegen()
 {
-//	printwq("codegen binary\n");
-//	printint(Op);
-//	printint(moreThen);
+
 	if (Op == assignment)
 	{
 		if (LHS->getType() != variable && LHS->getType() != callArray){
@@ -178,8 +179,7 @@ Value *BinaryExprAST::codegen()
         Value* Val = RHS->codegen(); //右值
         if (!Val)
             return nullptr;
-		Value* B = Builder.CreateStore(Val, Variable);
-        return B;
+		return Builder.CreateStore(Val, Variable);
 	}
 
 	Value *L = LHS->codegen();
@@ -199,29 +199,16 @@ Value *BinaryExprAST::codegen()
 		return Builder.CreateFDiv(L, R, "divmp");
 	case lessThen:
 		return Builder.CreateFCmpULT(L, R, "cmptmp"); //cmp -> compare
-		//Convert bool 0/1 to double 0.0 or 1.0
-		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case moreThen:
-		//printwq("============here================\n");
 		return Builder.CreateFCmpUGT(L, R, "cmptmp"); //cmp -> compare
-		// Convert bool 0/1 to double 0.0 or 1.0
-		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case lessEqual:
 		return  Builder.CreateFCmpULE(L, R, "cmptmp"); //cmp -> compare
-		// Convert bool 0/1 to double 0.0 or 1.0
-		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case moreEqual:
 		return Builder.CreateFCmpUGE(R, L, "cmptmp"); //cmp -> compare
-		// Convert bool 0/1 to double 0.0 or 1.0
-		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case equalSign:
 		return Builder.CreateFCmpUEQ(R, L, "cmptmp"); //cmp -> compare
-		// Convert bool 0/1 to double 0.0 or 1.0
-		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	case notEqual:
 		return Builder.CreateFCmpUNE(R, L, "cmptmp"); //cmp -> compare
-		// Convert bool 0/1 to double 0.0 or 1.0
-		// return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
 	default:
 		break;
 	}
@@ -265,6 +252,8 @@ Value *CallExprAST::codegen()
 Value *IfExprAST::codegen()
 {
 //	printwq("codegen if\n");
+	bool needMerge = false;
+
 	Value *CondV = Cond->codegen();
 	if (!CondV)
 		return nullptr;
@@ -272,7 +261,7 @@ Value *IfExprAST::codegen()
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 
 	// Create blocks for the then and else cases.  Insert the 'then' block at the
-	//end of the function.
+	// end of the function.
 	BasicBlock *ThenBB = BasicBlock::Create(TheContext, "then", TheFunction);
 	BasicBlock *ElseBB = BasicBlock::Create(TheContext, "else");
 	BasicBlock *MergeBB = BasicBlock::Create(TheContext, "ifcont");
@@ -283,10 +272,15 @@ Value *IfExprAST::codegen()
 	Builder.SetInsertPoint(ThenBB);
 
 	Value *ThenV = Then->codegen();
-	/*if (!ThenV)
+	if (!ThenV)
 		return nullptr;
-	*/
-	Builder.CreateBr(MergeBB);
+	
+	std::vector<std::unique_ptr<ExprAST>> ThenExprs = Then->getBodyExpr();
+	if(ThenExprs[ThenExprs.size()-1]->getType()!=returnT){
+		Builder.CreateBr(MergeBB);
+		needMerge = true;
+	}
+	
 	// Codegen of 'Then' can change the current block, update ThenBB for the PHI.
 	ThenBB = Builder.GetInsertBlock();
 
@@ -295,23 +289,23 @@ Value *IfExprAST::codegen()
 	Builder.SetInsertPoint(ElseBB);
 
 	Value *ElseV = Else->codegen();
-	/*if (!ElseV)
+	if (!ElseV)
 		return nullptr;
-	*/
-	Builder.CreateBr(MergeBB);
+	
+	std::vector<std::unique_ptr<ExprAST>> ElseExprs = Else->getBodyExpr();
+	if(ElseExprs[ElseExprs.size()-1]->getType()!=returnT){
+		Builder.CreateBr(MergeBB);
+		needMerge = true;
+	}
 	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
 	ElseBB = Builder.GetInsertBlock();
 
 	// Emit merge block.
-	TheFunction->getBasicBlockList().push_back(MergeBB);
-	Builder.SetInsertPoint(MergeBB);
-	PHINode *PN = Builder.CreatePHI(Type::getDoubleTy(TheContext), 2, "iftmp");
-
-	PN->addIncoming(ThenV, ThenBB);
-	PN->addIncoming(ElseV, ElseBB);
-
-//	printwq("codegen if end\n");
-	return PN;
+	if(needMerge){
+		TheFunction->getBasicBlockList().push_back(MergeBB);
+		Builder.SetInsertPoint(MergeBB);
+	}
+	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
 Value *ForExprAST::codegen()
@@ -320,18 +314,68 @@ Value *ForExprAST::codegen()
 
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 	// Create an alloca for the variable in the entry block.
-	AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName, 1);
-	
+	AllocaInst *ConAlloca = CreateEntryBlockAlloca(TheFunction, VarName, 1);
+	//if there is variable with same name
+	AllocaInst *OldVal = NamedValues[VarName];
+	NamedValues[VarName] = ConAlloca;
+
 	// Emit the start code first, without 'variable' in scope.
 	Value *StartVal = Start->codegen();
 	if (!StartVal)
 		return nullptr;
-
 	// Store the value into the alloca.
-	Builder.CreateStore(StartVal, Alloca);
-	// Make the new basic block for the loop header, inserting after current
-	// block.
-	BasicBlock *LoopBB = BasicBlock::Create(TheContext,"loopbr", TheFunction);
+	Builder.CreateStore(StartVal, ConAlloca);
+
+	BasicBlock *ConBB = BasicBlock::Create(TheContext,"conbr", TheFunction);
+	BasicBlock *BodyBB = BasicBlock::Create(TheContext,"bodybr");
+	BasicBlock *AfterBB = BasicBlock::Create(TheContext,"afterbr");
+
+	Builder.CreateBr(ConBB);
+	Builder.SetInsertPoint(ConBB);
+
+	Value *EndCond = End->codegen();
+	if (!EndCond)
+		return nullptr;
+
+	Builder.CreateCondBr(EndCond, BodyBB, AfterBB);
+
+	ConBB = Builder.GetInsertBlock();
+
+	// Emit body block.
+	TheFunction->getBasicBlockList().push_back(BodyBB);
+	Builder.SetInsertPoint(BodyBB);
+	if (!Body->codegen())
+		return nullptr;
+	
+	BodyBB = Builder.GetInsertBlock();
+	// Emit the step value.
+	Value *StepVal = nullptr;
+	if (Step){
+		StepVal = Step->codegen();
+		if (!StepVal)
+			return nullptr;
+	}else
+	{
+		// If not specified, use 1.0.
+		StepVal = ConstantFP::get(TheContext, APFloat(1.0));
+	}
+	Value *CurVar = Builder.CreateLoad(ConAlloca, VarName.c_str());
+	Value *NextVar = Builder.CreateFAdd(CurVar, StepVal, "nextvar");
+	Builder.CreateStore(NextVar, ConAlloca);
+
+	Builder.CreateBr(ConBB);
+
+	// Emit after block.
+	TheFunction->getBasicBlockList().push_back(AfterBB);
+	Builder.SetInsertPoint(AfterBB);
+
+	if (OldVal)
+		NamedValues[VarName] = OldVal;
+	else
+		NamedValues.erase(VarName);
+	return Constant::getNullValue(Type::getDoubleTy(TheContext));
+/////////////
+/*	BasicBlock *LoopBB = BasicBlock::Create(TheContext,"bodybr", TheFunction);
 	
 	// Insert an explicit fall through from the current block to the LoopBB.
 	Builder.CreateBr(LoopBB);
@@ -341,8 +385,7 @@ Value *ForExprAST::codegen()
 
 	// Within the loop, the variable is defined equal to the PHI node.  If it
 	// shadows an existing variable, we have to restore it, so save it now.
-	AllocaInst *OldVal = NamedValues[VarName];
-	NamedValues[VarName] = Alloca;
+
 
 	// Emit the body of the loop.  This, like any other expr, can change the
 	// current BB.  Note that we ignore the value computed by the body, but don't
@@ -375,10 +418,6 @@ Value *ForExprAST::codegen()
 	Value *NextVar = Builder.CreateFAdd(CurVar, StepVal, "nextvar");
 	Builder.CreateStore(NextVar, Alloca);
 
-	// Convert condition to a bool by comparing non-equal to 0.0.
-	// EndCond = Builder.CreateFCmpONE(
-	//	EndCond, ConstantFP::get(TheContext, APFloat(0.0)), "loopcond");
-
 	// Create the "after loop" block and insert it.
 	BasicBlock *AfterBB = BasicBlock::Create(TheContext, "afterloop", TheFunction);
 	
@@ -396,8 +435,7 @@ Value *ForExprAST::codegen()
 		NamedValues.erase(VarName);
 
 	// for expr always returns 0.0.
-//	printwq("codegen for end\n");
-	return Constant::getNullValue(Type::getDoubleTy(TheContext));
+	return Constant::getNullValue(Type::getDoubleTy(TheContext));*/
 }
 
 Value *CallArrayAST::codegen()
@@ -411,11 +449,7 @@ Value *CallArrayAST::codegen()
 
 		if(!arrayPtr)
 			return LogErrorV("undefined array");
-		arrayPtr = Builder.CreateLoad(arrayPtr);
-		/*Value *index = arrayIndex->codegen();
-		Value *eleptr = Builder.CreateGEP(cast<PointerType>(ptr->getType()->getScalarType())->getElementType(),
-									  ptr, {Builder.CreateFPToUI(index,Type::getInt32Ty(TheContext))});
-		return Builder.CreateLoad(eleptr);*/								
+		arrayPtr = Builder.CreateLoad(arrayPtr);							
 	}
 	Value *index = arrayIndex->codegen();
     //int (*FP)() = (int (*)())(intptr_t)cantFail(index.getAddress());
@@ -448,7 +482,6 @@ Value *ArrayAST::codegen()
 		//Builder.CreateStore(InitVal, Alloca);
 	}
     //return 0.0
-//	printwq("codegen array end\n");
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
@@ -549,18 +582,18 @@ Value* BodyAST::codegen()
 //	printwq("codegen body\n");
 
 	for(int i = 0;i<bodys.size();i++){
-		if(i==bodys.size()-1){
-			return bodys[i]->codegen();
-		}	
 		bodys[i]->codegen();
 	}
+	//return lastExpr;
+	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 	
 }
 
 Value *ReturnAST::codegen(){
 	Value* returnValue = returnE->codegen();
 	Builder.CreateRet(returnValue);
-	return returnValue;
+	// return returnValue;
+	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
 Function *FunctionAST::codegen()
@@ -592,6 +625,14 @@ Function *FunctionAST::codegen()
 		NamedValues[std::string(Arg.getName())] = Alloca;
 	}
 
+	// add a variable to record the return value
+	// use "return" as its name to avoid variable name cash
+	//Function *TheFunction = Builder.GetInsertBlock()->getParent();
+	//AllocaInst *returnAlloca = CreateEntryBlockAlloca(Function *TheFunction,"return", 0); //0 is the variable Type in the future
+	//NamedValues["return"] = returnAlloca;
+
+	NamedArray.clear();   // clean the array in last function
+	DynamicArray.clear();   //
 	Body->codegen();
 	
     // Validate the generated code, checking for consistency.

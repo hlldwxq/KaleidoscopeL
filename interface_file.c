@@ -5,6 +5,7 @@ double pi();
 double test();
 double test2();
 double fib5();
+double fib();
 
 
 int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv) {
@@ -17,7 +18,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv) 
 //   }
 //  res*=4;
 
-   double res = fib5(2.0);
+   double res = fib();
    printf("Result %lf\n",res);
 }
 

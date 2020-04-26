@@ -12,11 +12,14 @@
 
 def double fib() 
 {
-  var a 
-  a= 4.5
-  if 4>a
-  then return 4.5
-  else return 6.5
+  var a = 9
+  for i =0, i<9, 1 in {
+    a = a +i
+    if a>30
+    then a = 9
+    else { }
+  }
+  return a
 }
 
 

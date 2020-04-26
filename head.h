@@ -70,11 +70,22 @@ enum Token
 	tok_struct = -17,
 
     //return
-    tok_double = -18,
+   // tok_double = -18,
     tok_void = -19,
     tok_return = -20,
 	// error
 	lexerE = -21,
+
+	//type
+	tok_i1 = -22,
+	tok_i8 = -23,
+	tok_i16 = -24,
+	tok_i32 = -25,
+	tok_i64 = -26,
+	tok_i128 = -27,
+	tok_sizeT = -28,
+	tok_double = -29,
+
 	//symbal
 	equalSign = 128,  //==
 	notEqual = 129,   //!=

@@ -40,9 +40,11 @@ public:
 class VariableExprAST : public ExprAST
 {
 	std::string Name;
-
+	int varType;
 public:
-	VariableExprAST(const std::string &Name) : Name(Name) {type = variable;}
+	VariableExprAST(const std::string &Name) : Name(Name) {
+		type = variable;
+	}
 	const std::string &getName() const { return Name; }
 	Value *codegen() override;
 };
@@ -93,13 +95,20 @@ class BodyAST: public ExprAST{
 	//std::unique_ptr<ExprAST> returnE;
 
 public:
-	BodyAST(/*std::unique_ptr<ExprAST> returnE1,*/std::vector<std::unique_ptr<ExprAST>> bodys1){
+	BodyAST(std::vector<std::unique_ptr<ExprAST>> bodys1){
 		for(int i=0;i<bodys1.size();i++){
 			bodys.push_back(move(bodys1[i]));
 		}
 		//returnE = move(returnE1);
 		type = ASTType::body;
 	}
+
+	BodyAST(){}
+	
+	std::vector<std::unique_ptr<ExprAST>> getBodyExpr(){
+		return move(bodys);
+	}
+	
 	Value* codegen();
 };
 
@@ -107,11 +116,11 @@ public:
 class IfExprAST : public ExprAST
 {
 	std::unique_ptr<ExprAST> Cond;
-	std::unique_ptr<ExprAST> Then, Else;
+	std::unique_ptr<BodyAST> Then, Else;
 
 public:
-	IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
-			  std::unique_ptr<ExprAST> Else)
+	IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<BodyAST> Then,
+			  std::unique_ptr<BodyAST> Else)
 		: Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {
 			type = ASTType::ifT;
 		}
@@ -142,12 +151,13 @@ public:
 class VarExprAST : public ExprAST
 {
 	std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
+	int varType;
 	//std::unique_ptr<ExprAST> Body;
 
 public:
-	VarExprAST(std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames)
-		: VarNames(std::move(VarNames)) {
-			type = ASTType::var;
+	VarExprAST(std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames, int varType)
+		: VarNames(std::move(VarNames)), varType(varType) {
+			 type = ASTType::var;
 		}
 	Value *codegen() override;
 };
