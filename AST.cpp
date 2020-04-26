@@ -494,19 +494,21 @@ Value *DynamicArrayAST::codegen()
     DynamicArray[arrayName] = Alloca;
 
 	Value* Size = size->codegen();
+
 	Size = Builder.CreateFPToSI(Size,Type::getInt64Ty(TheContext)); 
 
 	Value * mallocSize = ConstantExpr::getSizeOf(Type::getDoubleTy(TheContext));
+
     mallocSize = ConstantExpr::getTruncOrBitCast(cast<Constant>(mallocSize),
             										Type::getInt64Ty(TheContext));
-  
+
     Instruction * var_malloc= CallInst::CreateMalloc(Builder.GetInsertBlock(),
             Type::getInt64Ty(TheContext), Type::getDoubleTy(TheContext), mallocSize,Size,nullptr,"");
-    Builder.Insert(var_malloc);
+
+	Builder.Insert(var_malloc);
     Value *var = var_malloc;
 	
 	Builder.CreateStore(var,Alloca);
-
 //	printwq("codegen dynamic array end\n");
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }

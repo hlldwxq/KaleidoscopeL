@@ -12,14 +12,12 @@
 
 def double fib() 
 {
-  var a = 9
-  for i =0, i<9, 1 in {
-    a = a +i
-    if a>30
-    then a = 9
-    else { }
-  }
-  return a
+  var n = 8
+  array *a = new [n]
+  for i=0,i<8,1 in {
+    a[i] = i
+  } 
+  return a[0]+a[1]+a[2]+a[3]+a[4]+a[7]
 }
 
 

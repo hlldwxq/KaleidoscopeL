@@ -109,14 +109,15 @@ static std::unique_ptr<ExprAST> ParseVarExpr(int level)
 ///          ::= array *a = new [n]
 static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 {
-/*	for(int i=0;i<level;i++){
+	/*for(int i=0;i<level;i++){
 		printwq(" ");
 	}
-	printwq("parse array\n");*/
-
+	printwq("parse array\n");
+*/
 	getNextToken(); // eat array
 
-	if(CurTok=='*'){
+	if(CurTok==mult){
+		
 		getNextToken(); // eat *
 		
 		if(CurTok != tok_identifier){
@@ -124,17 +125,17 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 		}
 		std::string name = IdentifierStr;
 		getNextToken(); //eat name
-		
-		if(CurTok != '='){
+	
+		if(CurTok != assignment){
 			return LogError("expected =");
 		}
 		getNextToken();
-
+		
 		if(CurTok != tok_new){
 			return LogError("expected new keyword");
 		}
 		getNextToken();
-		
+
 		if(CurTok != '['){
 			return LogError("expected [");
 		}
@@ -158,7 +159,8 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 
 		std::string name = IdentifierStr;
 		getNextToken(); //eat identifier
-		if (CurTok != '=')
+
+		if (CurTok != assignment)
 		{
 			return LogError("expected '=' in array definition");
 		}
@@ -181,7 +183,7 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 
 				if (CurTok != ',' && CurTok != '}')
 				{
-					LogError((char*)(int2Str(CurTok)).data());
+					//LogError((char*)(int2Str(CurTok)).data());
 					return LogError("unexpected symbol in array definition");
 				}
 				if(CurTok == ','){
@@ -190,7 +192,7 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 			}
 			getNextToken(); //eat }
 			auto result = std::make_unique<ArrayAST>(name, std::move(content));
-		/*	for(int i=0;i<level;i++){
+			/*for(int i=0;i<level;i++){
 				printwq(" ");
 			}
 			printwq("end parse array 1\n");*/
@@ -218,7 +220,7 @@ static std::unique_ptr<ExprAST> ParseArrayExpr(int level)
 				getNextToken();
 			}
 			auto result = std::make_unique<ArrayAST>(name, num);
-		/*	for(int i=0;i<level;i++){
+			/*for(int i=0;i<level;i++){
 				printwq(" ");
 			}
 			printwq("end parse array 2\n");*/
@@ -351,9 +353,9 @@ static std::unique_ptr<ExprAST> ParsePrimary(int level)
 		}
 		getNextToken(); //eat }
 		if(bodys.size()==0){
-			return move(std::make_unique<BodyAST>());
+			return std::make_unique<BodyAST>();
 		}
-		return move(std::make_unique<BodyAST>(std::move(bodys)));
+		return std::make_unique<BodyAST>(std::move(bodys));
 			
 	}
 		
@@ -453,7 +455,7 @@ static std::unique_ptr<BodyAST> ParseBody(int level){
 			bodyE.release();
 			anotherPtr.reset(anotherBody);
 		}
-		return move(anotherPtr);
+		return anotherPtr;
 	}else{
 		std::vector<std::unique_ptr<ExprAST>> realBody;
 		realBody.push_back(move(bodyE));
@@ -618,7 +620,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<Expr
 		// If this is a binop that binds at least as tightly as the current binop,
 		// consume it, otherwise we are done.
 		if (TokPrec < ExprPrec)
-			return std::move(LHS);
+			return LHS;
 
 		// Okay, we know this is a binop.
 		int BinOp = CurTok;
