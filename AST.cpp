@@ -375,7 +375,7 @@ Value *CallExprAST::codegen()
 Value *IfExprAST::codegen()
 {
 //	printwq("codegen if\n");
-	bool needMerge = false;
+	//bool needMerge = false;
 
 	Value *CondV = Cond->codegen();
 	if (!CondV)
@@ -397,12 +397,12 @@ Value *IfExprAST::codegen()
 	Value *ThenV = Then->codegen();
 	if (!ThenV)
 		return nullptr;
-	
-	std::vector<std::unique_ptr<ExprAST>> ThenExprs = Then->getBodyExpr();
+	Builder.CreateBr(MergeBB);
+	/*std::vector<std::unique_ptr<ExprAST>> ThenExprs = Then->getBodyExpr();
 	if(ThenExprs[ThenExprs.size()-1]->getType()!=returnT){
 		Builder.CreateBr(MergeBB);
 		needMerge = true;
-	}
+	}*/
 	
 	// Codegen of 'Then' can change the current block, update ThenBB for the PHI.
 	ThenBB = Builder.GetInsertBlock();
@@ -414,20 +414,20 @@ Value *IfExprAST::codegen()
 	Value *ElseV = Else->codegen();
 	if (!ElseV)
 		return nullptr;
-	
-	std::vector<std::unique_ptr<ExprAST>> ElseExprs = Else->getBodyExpr();
+	Builder.CreateBr(MergeBB);
+	/*std::vector<std::unique_ptr<ExprAST>> ElseExprs = Else->getBodyExpr();
 	if(ElseExprs[ElseExprs.size()-1]->getType()!=returnT){
 		Builder.CreateBr(MergeBB);
 		needMerge = true;
-	}
+	}*/
 	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
 	ElseBB = Builder.GetInsertBlock();
 
 	// Emit merge block.
-	if(needMerge){
+	//if(needMerge){
 		TheFunction->getBasicBlockList().push_back(MergeBB);
 		Builder.SetInsertPoint(MergeBB);
-	}
+	//}
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
@@ -677,9 +677,15 @@ Value* BodyAST::codegen()
 }
 
 Value *ReturnAST::codegen(){
+	/*Value* returnValue = returnE->codegen();
+	Builder.CreateRet(returnValue);*/
+
 	Value* returnValue = returnE->codegen();
-	Builder.CreateRet(returnValue);
-	// return returnValue;
+	Value* Alloca = findNamedValues("return");
+	if(!Alloca)
+		return LogErrorV("The function should not have return value");
+	Builder.CreateStore(returnValue, Alloca);
+
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
 
@@ -703,18 +709,34 @@ Function *FunctionAST::codegen()
 	BasicBlock *BB = BasicBlock::Create(TheContext, "entry", TheFunction);
 	Builder.SetInsertPoint(BB);
 
+	Value* retAlloca; 
+	//record the alloca if returnValue, because the namedValue will be clear before
+	//the end of body
 	NamedValues.push_back(std::map<std::string, Value *>());
+	// if the return type is not void, we need a variable to represent return value
+	// Clang do this with the method, so I imitate it
+	if(P.getReturnType()!=voidR){
+		addNamedValue("return");
+		retAlloca = findNamedValues("return");
+		//the reason why I use return as name is because "return" is keyword, so ther will 
+		//be no cash with variable name
+	}
 	// Record the function arguments in the NamedValues map.
-	auto &lastMap = NamedValues.back();
+	// auto &lastMap = NamedValues.back();
 	for (auto &Arg : TheFunction->args())
 	{	
-		
-		//lastMap[std::string(Arg.getName())] = &Arg;
 		addNamedValue(std::string(Arg.getName()));
 		Value* Alloca = findNamedValues(std::string(Arg.getName()));
 		Builder.CreateStore(&Arg, Alloca);
 	}
 	Body->codegen();
+
+	if(P.getReturnType()==voidR){
+		Builder.CreateRetVoid();
+	}else{
+		Value* retValue = Builder.CreateLoad(retAlloca);
+		Builder.CreateRet(retValue);
+	}
     // Validate the generated code, checking for consistency.
     verifyFunction(*TheFunction);
     // Run the optimizer on the function.  
