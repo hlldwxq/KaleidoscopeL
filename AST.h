@@ -103,13 +103,14 @@ public:
 		type = ASTType::body;
 	}
 
-	BodyAST(){}
+	BodyAST(){}  //it is useful, do not remove
 	
 	std::vector<std::unique_ptr<ExprAST>> getBodyExpr(){
 		return move(bodys);
 	}
 	
 	Value* codegen();
+	//Value* codegen(std::vector<std::string> preValues);
 };
 
 /// IfExprAST - Expression class for if/then/else.
@@ -294,15 +295,23 @@ public:
 };
  // end anonymous namespace
 
+bool addNamedValue(std::string name);
+Value* findNamedValues(std::string name);
+void removeNamedValue(std::string name);
+bool addNamedArray(std::string name, int size);
+AllocaInst* findNamedArray(std::string name);
+bool addDynamicArray(std::string name);
+AllocaInst* findDynamicArray(std::string name);
+
 extern std::unique_ptr<Module> TheModule;
 extern std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 extern std::unique_ptr<KaleidoscopeJIT> TheJIT;
 
 static LLVMContext TheContext;
 static IRBuilder<> Builder(TheContext);
-static std::map<std::string, AllocaInst *> NamedValues;
-static std::map<std::string, AllocaInst *> NamedArray;
-static std::map<std::string, Value *> DynamicArray;
+static std::vector<std::map<std::string, Value *>> NamedValues;
+static std::vector<std::map<std::string, AllocaInst*>> NamedArray;
+static std::vector<std::map<std::string, AllocaInst*>> DynamicArray;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 
 std::unique_ptr<ExprAST> LogError(const char *Str);

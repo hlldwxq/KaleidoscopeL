@@ -6,6 +6,125 @@ std::unique_ptr<Module> TheModule;
 std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 std::unique_ptr<KaleidoscopeJIT> TheJIT;
 
+bool addNamedValue(std::string name){
+	if(NamedValues.size()>0){
+		auto lastNamedValue = NamedValues.back();
+		if(lastNamedValue.count(name)){
+			return false;
+		}
+	}
+	if(NamedArray.size()>0){
+		auto lastNamedArray = NamedArray.back();
+		if(lastNamedArray.count(name)){
+			return false;
+		}
+	}
+	if(DynamicArray.size()>0){
+		auto lastDynamicArray = DynamicArray.back();
+		if(lastDynamicArray.count(name)){
+			return false;
+		}
+	}
+
+	Value *Alloca =  Builder.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), 1), name);
+	//printint(NamedValues.size());
+	auto &lastMap = NamedValues.back();
+	lastMap[name] = Alloca;
+
+	return true;
+}
+void removeNamedValue(std::string name){
+	for(int i=NamedValues.size()-1 ; i>=0 ; i--){
+		std::map<std::string,Value *> &theMap = NamedValues.at(i);
+		if(theMap.count(name)){
+			std::map<std::string,Value *>::iterator key = theMap.find(name);
+			if(key!=theMap.end()){
+				theMap.erase(key);
+			}
+		}
+	}
+}
+bool addNamedArray(std::string name, int size){
+	if(NamedValues.size()>0){
+		auto lastNamedValue = NamedValues.back();
+		if(lastNamedValue.count(name)){
+			return false;
+		}
+	}
+	if(NamedArray.size()>0){
+		auto lastNamedArray = NamedArray.back();
+		if(lastNamedArray.count(name)){
+			return false;
+		}
+	}
+	if(DynamicArray.size()>0){
+		auto lastDynamicArray = DynamicArray.back();
+		if(lastDynamicArray.count(name)){
+			return false;
+		}
+	}
+	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), size), name);
+	auto& lastMap = NamedArray.back();
+	lastMap[name] = Alloca;
+	return true;
+}
+bool addDynamicArray(std::string name){
+	if(NamedValues.size()>0){
+		auto lastNamedValue = NamedValues.back();
+		if(lastNamedValue.count(name)){
+			return false;
+		}
+	}
+	if(NamedArray.size()>0){
+		auto lastNamedArray = NamedArray.back();
+		if(lastNamedArray.count(name)){
+			return false;
+		}
+	}
+	if(DynamicArray.size()>0){
+		auto lastDynamicArray = DynamicArray.back();
+		if(lastDynamicArray.count(name)){
+			return false;
+		}
+	}
+	
+	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoublePtrTy(TheContext),nullptr, name);
+    std::map<std::string,AllocaInst *> lastMap = DynamicArray.back();
+	lastMap[name] = Alloca;
+
+	return true;
+}
+Value * findNamedValues(std::string name){
+	for(int i=NamedValues.size()-1 ; i>=0 ; i--){
+		std::map<std::string,Value *> theMap = NamedValues.at(i);
+		if(theMap.count(name)){
+		//	printwq("find: \n");
+		//	printwq(name);
+			return theMap[name];
+		}
+	}
+	//printwq("not find: \n");
+	//printwq(name);
+	return nullptr;
+}
+AllocaInst* findNamedArray(std::string name){
+	for(int i=NamedArray.size()-1 ; i>=0 ; i--){
+		std::map<std::string, AllocaInst*> theMap = NamedArray.at(i);
+		if(theMap.count(name)){
+			return theMap[name];
+		}
+	}
+	return nullptr;
+}
+AllocaInst * findDynamicArray(std::string name){
+	for(int i=DynamicArray.size()-1 ; i>=0 ; i--){
+		std::map<std::string, AllocaInst *> theMap = DynamicArray.at(i);
+		if(theMap.count(name)){
+			return theMap[name];
+		}
+	}
+	return nullptr;
+}
 int ExprAST::getType(){
 	return type;
 }
@@ -39,6 +158,7 @@ int GetTokPrecedence()
 /// Error* - These are little helper functions for error handling.
 std::unique_ptr<ExprAST> LogError(const char *Str)
 {
+	fprintf(stderr, "Error: %s\n", Str);
 	return nullptr;
 }
 
@@ -107,11 +227,14 @@ Value *VariableExprAST::codegen()
 {
 //	printwq("codegen variable\n");
 	// Look this variable up in the function.
-	AllocaInst *V = NamedValues[Name];
+
+	Value *V = findNamedValues(Name);
+	
 	if (!V){
 		return LogErrorV("Unknown variable name");
 	}
 //	printwq("codegen variable end\n");
+
 	return Builder.CreateLoad(V, Name.c_str());
 }
 
@@ -151,15 +274,15 @@ Value *BinaryExprAST::codegen()
 		if(LHS->getType() == variable){
 
 			VariableExprAST *LHSE = static_cast<VariableExprAST *>(LHS.get());
-			Variable = NamedValues[LHSE->getName()];
+			Variable = findNamedValues(LHSE->getName());
 
 		}else{
 
 			CallArrayAST *LHSE = static_cast<CallArrayAST *>(LHS.get());
-			Value *arrayPtr = NamedArray[LHSE->getArrayName()];
+			Value *arrayPtr = findNamedArray(LHSE->getArrayName());
 			if (!arrayPtr){
 
-				arrayPtr = DynamicArray[LHSE->getArrayName()];
+				arrayPtr = findDynamicArray(LHSE->getArrayName());
 				if(!arrayPtr)
 					return LogErrorV("undefined array");
 
@@ -314,17 +437,22 @@ Value *ForExprAST::codegen()
 
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
 	// Create an alloca for the variable in the entry block.
-	AllocaInst *ConAlloca = CreateEntryBlockAlloca(TheFunction, VarName, 1);
-	//if there is variable with same name
-	AllocaInst *OldVal = NamedValues[VarName];
-	NamedValues[VarName] = ConAlloca;
-
+	Value* oldVar = nullptr;
+	if(findNamedValues(VarName)){
+		oldVar = findNamedValues(VarName);
+		removeNamedValue(VarName);
+	}
+	// NamedValues.push_back(std::map<std::string, AllocaInst*>());
+	if(!addNamedValue(VarName)){
+		return LogErrorV("variabel cannot be defined repeatedly\n");
+	}
 	// Emit the start code first, without 'variable' in scope.
 	Value *StartVal = Start->codegen();
 	if (!StartVal)
 		return nullptr;
 	// Store the value into the alloca.
-	Builder.CreateStore(StartVal, ConAlloca);
+	Builder.CreateStore(StartVal, findNamedValues(VarName));
+	//printwq("lalalala\n");
 
 	BasicBlock *ConBB = BasicBlock::Create(TheContext,"conbr", TheFunction);
 	BasicBlock *BodyBB = BasicBlock::Create(TheContext,"bodybr");
@@ -336,7 +464,7 @@ Value *ForExprAST::codegen()
 	Value *EndCond = End->codegen();
 	if (!EndCond)
 		return nullptr;
-
+	//printwq("end cond\n");
 	Builder.CreateCondBr(EndCond, BodyBB, AfterBB);
 
 	ConBB = Builder.GetInsertBlock();
@@ -346,7 +474,7 @@ Value *ForExprAST::codegen()
 	Builder.SetInsertPoint(BodyBB);
 	if (!Body->codegen())
 		return nullptr;
-	
+	//printwq("end body\n");
 	BodyBB = Builder.GetInsertBlock();
 	// Emit the step value.
 	Value *StepVal = nullptr;
@@ -359,9 +487,10 @@ Value *ForExprAST::codegen()
 		// If not specified, use 1.0.
 		StepVal = ConstantFP::get(TheContext, APFloat(1.0));
 	}
-	Value *CurVar = Builder.CreateLoad(ConAlloca, VarName.c_str());
+	Value *CurVar = Builder.CreateLoad(findNamedValues(VarName), VarName.c_str());
+	//printwq("problem\n");
 	Value *NextVar = Builder.CreateFAdd(CurVar, StepVal, "nextvar");
-	Builder.CreateStore(NextVar, ConAlloca);
+	Builder.CreateStore(NextVar, findNamedValues(VarName));
 
 	Builder.CreateBr(ConBB);
 
@@ -369,83 +498,23 @@ Value *ForExprAST::codegen()
 	TheFunction->getBasicBlockList().push_back(AfterBB);
 	Builder.SetInsertPoint(AfterBB);
 
-	if (OldVal)
-		NamedValues[VarName] = OldVal;
-	else
-		NamedValues.erase(VarName);
+	removeNamedValue(VarName);
+	if (oldVar){
+		std::map<std::string, Value *> &theMap = NamedValues.back();
+		theMap[VarName] = oldVar;
+	}
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
-/////////////
-/*	BasicBlock *LoopBB = BasicBlock::Create(TheContext,"bodybr", TheFunction);
-	
-	// Insert an explicit fall through from the current block to the LoopBB.
-	Builder.CreateBr(LoopBB);
 
-	// Start insertion in LoopBB.
-	Builder.SetInsertPoint(LoopBB);
-
-	// Within the loop, the variable is defined equal to the PHI node.  If it
-	// shadows an existing variable, we have to restore it, so save it now.
-
-
-	// Emit the body of the loop.  This, like any other expr, can change the
-	// current BB.  Note that we ignore the value computed by the body, but don't
-	// allow an error.
-	if (!Body->codegen())
-		return nullptr;
-
-	// Emit the step value.
-	Value *StepVal = nullptr;
-	if (Step)
-	{
-		StepVal = Step->codegen();
-		if (!StepVal)
-			return nullptr;
-	}
-	else
-	{
-		// If not specified, use 1.0.
-		StepVal = ConstantFP::get(TheContext, APFloat(1.0));
-	}
-
-	// Compute the end condition.
-	Value *EndCond = End->codegen();
-	if (!EndCond)
-		return nullptr;
-
-	// Reload, increment, and restore the alloca.  This handles the case where
-	// the body of the loop mutates the variable.
-	Value *CurVar = Builder.CreateLoad(Alloca, VarName.c_str());
-	Value *NextVar = Builder.CreateFAdd(CurVar, StepVal, "nextvar");
-	Builder.CreateStore(NextVar, Alloca);
-
-	// Create the "after loop" block and insert it.
-	BasicBlock *AfterBB = BasicBlock::Create(TheContext, "afterloop", TheFunction);
-	
-    //BasicBlock *AfterBB = BasicBlock::Create(TheContext, Builder.GetInsertBlock()->getParent());
-	// Insert the conditional branch into the end of LoopEndBB.
-	Builder.CreateCondBr(EndCond, LoopBB, AfterBB);
-
-	// Any new code will be inserted in AfterBB.
-	Builder.SetInsertPoint(AfterBB);
-
-	// Restore the unshadowed variable.
-	if (OldVal)
-		NamedValues[VarName] = OldVal;
-	else
-		NamedValues.erase(VarName);
-
-	// for expr always returns 0.0.
-	return Constant::getNullValue(Type::getDoubleTy(TheContext));*/
 }
 
 Value *CallArrayAST::codegen()
 {
 //	printwq("codegen call array\n");
 
-	Value *arrayPtr = NamedArray[arrayName];
+	Value* arrayPtr = findNamedArray(arrayName);
 	if (!arrayPtr)
 	{
-		arrayPtr = DynamicArray[arrayName];
+		arrayPtr = findDynamicArray(arrayName);
 
 		if(!arrayPtr)
 			return LogErrorV("undefined array");
@@ -465,9 +534,13 @@ Value *ArrayAST::codegen()
 //	printwq("codegen array\n");
 
 	Function *TheFunction = Builder.GetInsertBlock()->getParent();
-	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), size), arrayName);
+	
+	if(!addNamedArray(arrayName,size)){
+		return LogErrorV("variabel cannot be defined repeatedly\n");
+	}
+	//AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoubleTy(TheContext), ConstantInt::get(Type::getInt32Ty(TheContext), size), arrayName);
 	/*CreateEntryBlockAlloca(TheFunction, arrayName, size);*/
-    NamedArray[arrayName] = Alloca;
+    //NamedArray[arrayName] = Alloca;
 
 	if (length > 0)
 	{
@@ -475,8 +548,8 @@ Value *ArrayAST::codegen()
 
 		for (int i = 0; i < elements.size(); i++)
 		{
-			Value *eleptr = Builder.CreateGEP(cast<PointerType>(Alloca->getType()->getScalarType())->getElementType(),
-											  Alloca, {ConstantInt::get(TheContext, APInt(32, i)) });
+			Value *eleptr = Builder.CreateGEP(cast<PointerType>(findNamedArray(arrayName)->getType()->getScalarType())->getElementType(),
+											  findNamedArray(arrayName), {ConstantInt::get(TheContext, APInt(32, i)) });
 			Builder.CreateStore(elements[i]->codegen(), eleptr);
 		}
 		//Builder.CreateStore(InitVal, Alloca);
@@ -490,8 +563,11 @@ Value *DynamicArrayAST::codegen()
 
 //	printwq("codegen dynamic array\n");
 
-	AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoublePtrTy(TheContext),nullptr, arrayName);
-    DynamicArray[arrayName] = Alloca;
+	//AllocaInst *Alloca =  Builder.CreateAlloca(Type::getDoublePtrTy(TheContext),nullptr, arrayName);
+    //DynamicArray[arrayName] = Alloca;
+	if(!addDynamicArray(arrayName)){
+		return LogErrorV("variabel cannot be defined repeatedly\n");
+	}
 
 	Value* Size = size->codegen();
 
@@ -508,7 +584,7 @@ Value *DynamicArrayAST::codegen()
 	Builder.Insert(var_malloc);
     Value *var = var_malloc;
 	
-	Builder.CreateStore(var,Alloca);
+	Builder.CreateStore(var,findDynamicArray(arrayName));
 //	printwq("codegen dynamic array end\n");
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 }
@@ -517,18 +593,14 @@ Value *VarExprAST::codegen()
 {
 //	printwq("codegen var\n");
 
-	std::vector<AllocaInst *> OldBindings;
-	Function *TheFunction = Builder.GetInsertBlock()->getParent();
+	// std::vector<AllocaInst *> OldBindings;
+	// Function *TheFunction = Builder.GetInsertBlock()->getParent();
    
 	// Register all variables and emit their initializer.
 	for (unsigned i = 0, e = VarNames.size(); i != e; ++i){
 		const std::string &VarName = VarNames[i].first;
 		ExprAST *Init = VarNames[i].second.get();
-		// Emit the initializer before adding the variable to scope, this prevents
-		// the initializer from referencing the variable itself, and permits stuff
-		// like this:
-		//  var a = 1 in
-		//    var a = a in ...   # refers to outer 'a'.
+	
 		Value *InitVal;
 		if (Init)
 		{
@@ -540,14 +612,15 @@ Value *VarExprAST::codegen()
 		{ // If not specified, use 0.0.
 			InitVal = ConstantFP::get(TheContext, APFloat(0.0));
 		}
-		AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName, 1);
+		if(!addNamedValue(VarName)){
+			return LogErrorV("variabel cannot be defined repeatedly\n");
+		}
+		Value *Alloca = findNamedValues(VarName);
+		if(!Alloca)
+			return LogErrorV("undefined variable");
 		auto* B = Builder.CreateStore(InitVal, Alloca);
-		// Remember the old variable binding so that we can restore the binding when
-		// we unrecurse.
-		OldBindings.push_back(NamedValues[VarName]);
-		// Remember this binding.
-		NamedValues[VarName] = Alloca;
-//		printwq("codegen var end1\n");
+		
+		// printwq("codegen var end1\n");
         return B;
 	}
 
@@ -583,10 +656,22 @@ Value* BodyAST::codegen()
 {
 //	printwq("codegen body\n");
 
+	// scope
+	if(NamedValues.size() == NamedArray.size()){
+		NamedValues.push_back(std::map<std::string, Value *>());
+	}
+	NamedArray.push_back(std::map<std::string,  AllocaInst*>());
+	DynamicArray.push_back(std::map<std::string, AllocaInst*>());
+
 	for(int i = 0;i<bodys.size();i++){
 		bodys[i]->codegen();
 	}
-	//return lastExpr;
+
+	//scope
+	NamedValues.pop_back();
+	NamedArray.pop_back();
+	DynamicArray.pop_back();
+
 	return Constant::getNullValue(Type::getDoubleTy(TheContext));
 	
 }
@@ -618,25 +703,18 @@ Function *FunctionAST::codegen()
 	BasicBlock *BB = BasicBlock::Create(TheContext, "entry", TheFunction);
 	Builder.SetInsertPoint(BB);
 
+	NamedValues.push_back(std::map<std::string, Value *>());
 	// Record the function arguments in the NamedValues map.
-	NamedValues.clear();
+	auto &lastMap = NamedValues.back();
 	for (auto &Arg : TheFunction->args())
-	{
-		AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, Arg.getName(), 1);
+	{	
+		
+		//lastMap[std::string(Arg.getName())] = &Arg;
+		addNamedValue(std::string(Arg.getName()));
+		Value* Alloca = findNamedValues(std::string(Arg.getName()));
 		Builder.CreateStore(&Arg, Alloca);
-		NamedValues[std::string(Arg.getName())] = Alloca;
 	}
-
-	// add a variable to record the return value
-	// use "return" as its name to avoid variable name cash
-	//Function *TheFunction = Builder.GetInsertBlock()->getParent();
-	//AllocaInst *returnAlloca = CreateEntryBlockAlloca(Function *TheFunction,"return", 0); //0 is the variable Type in the future
-	//NamedValues["return"] = returnAlloca;
-
-	NamedArray.clear();   // clean the array in last function
-	DynamicArray.clear();   //
 	Body->codegen();
-	
     // Validate the generated code, checking for consistency.
     verifyFunction(*TheFunction);
     // Run the optimizer on the function.  

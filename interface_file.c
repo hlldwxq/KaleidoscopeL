@@ -18,7 +18,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv) 
 //   }
 //  res*=4;
 
-   double res = fib();
+   double res = fib5();
    printf("Result %lf\n",res);
 }
 

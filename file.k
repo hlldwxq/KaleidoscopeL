@@ -9,18 +9,19 @@
 # }
 
 
-
-def double fib() 
+def double fib(i) 
 {
-  var n = 8
-  array *a = new [n]
-  for i=0,i<8,1 in {
-    a[i] = i
-  } 
-  return a[0]+a[1]+a[2]+a[3]+a[4]+a[7]
+  if i==1
+  then return 1
+  else {
+    if i ==2
+    then return 1
+    else return fib(i-1)+fib(i-2)
+  }
 }
-
-
+def double fib5(){
+  return fib(12)
+}
 
 # Are there other types than double
 # def int func() {
